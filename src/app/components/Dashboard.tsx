@@ -1,0 +1,230 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import {
+    Title2,
+    Title3,
+    Card,
+    CardHeader,
+    Button,
+    Badge,
+    Text,
+    Body1,
+    Caption1,
+    Divider,
+    Tab,
+    TabList,
+    SelectTabEvent,
+    SelectTabData,
+    makeStyles,
+    tokens,
+    MessageBar,
+} from "@fluentui/react-components";
+import { Overview } from "./tournament/Overview";
+import { MapPool } from "./tournament/MapPool";
+import { ScoreSubmission } from "./tournament/ScoreSubmission";
+import { PracticeChart } from "./tournament/PracticeChart";
+import { OpponentAnalysis } from "./tournament/OpponentAnalysis";
+import { BanPickBoard } from "./tournament/BanPickBoard";
+
+const useStyles = makeStyles({
+    container: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+    },
+    tabContainer: {
+        marginBottom: "24px",
+    },
+    noAccessCard: {
+        padding: "32px",
+        textAlign: "center",
+    },
+    userInfo: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        marginBottom: "16px",
+    },
+    avatar: {
+        width: "48px",
+        height: "48px",
+        borderRadius: "50%",
+    },
+});
+
+interface User {
+    id: number;
+    username: string;
+    avatar_url: string;
+    is_admin?: boolean;
+    groups?: string[];
+}
+
+interface Tournament {
+    id: string;
+    name: string;
+    mode: 'osu' | 'taiko' | 'mania' | 'catch';
+    type: 'team' | 'player';
+    stages: string[];
+    current_stage: string;
+    status: 'active' | 'completed' | 'upcoming';
+}
+
+interface DashboardProps {
+    user: User;
+}
+
+export function Dashboard({ user }: DashboardProps) {
+    const styles = useStyles();
+    const [selectedTab, setSelectedTab] = useState("overview");
+    const [tournaments, setTournaments] = useState<Tournament[]>([]);
+    const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        // 模拟获取用户参与的比赛
+        setTimeout(() => {
+            const mockTournaments: Tournament[] = [
+                {
+                    id: "t1",
+                    name: "OSU! World Cup 2025",
+                    mode: "osu",
+                    type: "team",
+                    stages: ["qua", "ro32", "ro16", "sf", "f", "gf"],
+                    current_stage: "ro16",
+                    status: "active",
+                },
+                {
+                    id: "t2",
+                    name: "Taiko Championship",
+                    mode: "taiko",
+                    type: "player",
+                    stages: ["ro32", "ro16", "sf", "f"],
+                    current_stage: "sf",
+                    status: "active",
+                },
+            ];
+            setTournaments(mockTournaments);
+            if (mockTournaments.length > 0) {
+                setSelectedTournament(mockTournaments[0]);
+            }
+            setLoading(false);
+        }, 1000);
+    }, []);
+
+    const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
+        setSelectedTab(data.value as string);
+    };
+
+    if (loading) {
+        return (
+            <div className={styles.container}>
+                <Text>加载比赛数据中...</Text>
+            </div>
+        );
+    }
+
+    if (!user.groups || user.groups.length === 0) {
+        return (
+            <div className={styles.container}>
+                <Card className={styles.noAccessCard}>
+                    <CardHeader
+                        header={<Title2>暂无访问权限</Title2>}
+                        description="您目前没有参与任何比赛分组，请联系管理员添加权限。"
+                    />
+                    <MessageBar intent="info" style={{ marginTop: "16px" }}>
+                        如果您应该有访问权限，请联系比赛管理员。
+                    </MessageBar>
+                </Card>
+            </div>
+        );
+    }
+
+    if (tournaments.length === 0) {
+        return (
+            <div className={styles.container}>
+                <Card className={styles.noAccessCard}>
+                    <CardHeader
+                        header={<Title2>暂无活跃比赛</Title2>}
+                        description="当前没有正在进行的比赛。"
+                    />
+                </Card>
+            </div>
+        );
+    }
+
+    return (
+        <div className={styles.container}>
+            {/* 用户信息 */}
+            <div className={styles.userInfo}>
+                <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
+                <div>
+                    <Text weight="semibold">{user.username}</Text>
+                    <Caption1 style={{ display: "block" }}>
+                        参与比赛: {tournaments.length} 个
+                    </Caption1>
+                </div>
+            </div>
+
+            {/* 比赛选择 */}
+            {tournaments.length > 1 && (
+                <Card>
+                    <CardHeader header={<Title3>选择比赛</Title3>} />
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", padding: "0 16px 16px" }}>
+                        {tournaments.map((tournament) => (
+                            <Button
+                                key={tournament.id}
+                                appearance={selectedTournament?.id === tournament.id ? "primary" : "outline"}
+                                onClick={() => setSelectedTournament(tournament)}
+                            >
+                                {tournament.name}
+                                <Badge
+                                    appearance="filled"
+                                    color={tournament.status === "active" ? "success" : "warning"}
+                                    style={{ marginLeft: "8px" }}
+                                >
+                                    {tournament.current_stage}
+                                </Badge>
+                            </Button>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {selectedTournament && (
+                <>
+                    {/* 比赛信息 */}
+                    <Card>
+                        <CardHeader
+                            header={<Title2>{selectedTournament.name}</Title2>}
+                            description={`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'} | 当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}
+                        />
+                    </Card>
+
+                    {/* 功能标签页 */}
+                    <div className={styles.tabContainer}>
+                        <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
+                            <Tab value="overview">总览</Tab>
+                            <Tab value="mappool">图池</Tab>
+                            <Tab value="scores">分数提交</Tab>
+                            <Tab value="practice">练图表总览</Tab>
+                            <Tab value="analysis">对手分析</Tab>
+                            <Tab value="banpick">BP记分板</Tab>
+                        </TabList>
+                    </div>
+
+                    {/* 标签页内容 */}
+                    <div>
+                        {selectedTab === "overview" && <Overview tournament={selectedTournament} user={user} />}
+                        {selectedTab === "mappool" && <MapPool tournament={selectedTournament} user={user} />}
+                        {selectedTab === "scores" && <ScoreSubmission tournament={selectedTournament} user={user} />}
+                        {selectedTab === "practice" && <PracticeChart tournament={selectedTournament} user={user} />}
+                        {selectedTab === "analysis" && <OpponentAnalysis tournament={selectedTournament} user={user} />}
+                        {selectedTab === "banpick" && <BanPickBoard tournament={selectedTournament} user={user} />}
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
