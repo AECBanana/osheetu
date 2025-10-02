@@ -1,0 +1,84 @@
+import { getSession as nextAuthGetSession, signIn, signOut } from 'next-auth/react';
+
+// 服务器端完整用户类型
+export interface ServerUser {
+  id: number;
+  osu_id: string;
+  username: string;
+  avatar_url: string;
+  access_token?: string;
+  refresh_token?: string;
+  token_expires_at?: Date;
+  is_admin: boolean;
+  groups?: string[];
+  created_at: Date;
+  updated_at: Date;
+}
+
+// 客户端会话用户类型（简化版）
+export interface User {
+  id: string;
+  osu_id: string;
+  username: string;
+  avatar_url: string;
+  is_admin: boolean;
+  groups?: string[];
+}
+
+// 获取当前用户会话
+export const getSession = async () => {
+  const session = await nextAuthGetSession();
+  return session;
+};
+
+// OSU登录
+export const loginWithOsu = () => {
+  const clientId = process.env.NEXT_PUBLIC_OSU_CLIENT_ID;
+  const redirectUri = process.env.OSU_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
+  const scope = 'identify';
+
+  const authUrl = `https://osu.ppy.sh/oauth/authorize?` +
+    `client_id=${clientId}&` +
+    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+    `response_type=code&` +
+    `scope=${scope}`;
+
+  window.location.href = authUrl;
+};
+
+// 登出
+export const logout = async () => {
+  await signOut();
+};
+
+// 检查用户是否已登录
+export const isLoggedIn = async () => {
+  const session = await getSession();
+  return !!session?.user;
+};
+
+// 检查用户是否为管理员
+export const isAdmin = async () => {
+  const session = await getSession();
+  // 将session.user转换为User类型
+  const user = session?.user as User | undefined;
+  return !!user?.is_admin;
+};
+
+// 获取当前用户信息
+export const getCurrentUser = async (): Promise<User | null> => {
+  const session = await getSession();
+  // 确保返回的是符合客户端User接口的对象
+  if (session?.user) {
+    const { id, osu_id, username, avatar_url, is_admin, groups } = session.user;
+    return {
+      id: id as string,
+      osu_id: osu_id as string,
+      username: username as string,
+      avatar_url: avatar_url as string,
+      is_admin: is_admin as boolean,
+      groups: groups as string[] | undefined
+    };
+  }
+  return null;
+};

@@ -13,6 +13,7 @@ import {
     Spinner,
     MessageBar,
 } from "@fluentui/react-components";
+import { loginWithOsu, type User } from '../../utils/auth';
 
 const useStyles = makeStyles({
     loginCard: {
@@ -39,14 +40,6 @@ const useStyles = makeStyles({
     },
 });
 
-interface User {
-    id: number;
-    username: string;
-    avatar_url: string;
-    is_admin?: boolean;
-    groups?: string[];
-}
-
 interface LoginComponentProps {
     onLogin: (user: User) => void;
 }
@@ -61,35 +54,8 @@ export function LoginComponent({ onLogin }: LoginComponentProps) {
         setError(null);
 
         try {
-            // 模拟 OSU API 登录流程
-            // 在实际应用中，这里会重定向到 OSU OAuth
-            const clientId = process.env.NEXT_PUBLIC_OSU_CLIENT_ID;
-            const redirectUri = encodeURIComponent(window.location.origin + '/auth/callback');
-            const scope = 'identify';
-
-            // 模拟登录成功（在实际应用中会通过 OAuth 流程）
-            setTimeout(() => {
-                const mockUser: User = {
-                    id: 12345,
-                    username: "TestPlayer",
-                    avatar_url: "https://a.ppy.sh/12345",
-                    is_admin: true, // 设置为管理员用于测试
-                    groups: ["tournament_group_1"],
-                };
-                onLogin(mockUser);
-                setLoading(false);
-            }, 2000);
-
-            // 实际的 OAuth 重定向代码（注释掉用于演示）
-            /*
-            const authUrl = `https://osu.ppy.sh/oauth/authorize?` +
-              `client_id=${clientId}&` +
-              `redirect_uri=${redirectUri}&` +
-              `response_type=code&` +
-              `scope=${scope}`;
-            
-            window.location.href = authUrl;
-            */
+            // 调用OSU OAuth登录
+            loginWithOsu();
         } catch (err) {
             setError('登录失败，请重试');
             setLoading(false);

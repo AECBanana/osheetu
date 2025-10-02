@@ -31,6 +31,7 @@ interface Tournament {
     mode: string;
     type: string;
     status: string;
+    created_at: string;
     participants: number;
 }
 

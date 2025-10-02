@@ -26,6 +26,7 @@ import { ScoreSubmission } from "./tournament/ScoreSubmission";
 import { PracticeChart } from "./tournament/PracticeChart";
 import { OpponentAnalysis } from "./tournament/OpponentAnalysis";
 import { BanPickBoard } from "./tournament/BanPickBoard";
+import { useUserSession } from '../../utils/hooks';
 
 const useStyles = makeStyles({
     container: {
@@ -53,14 +54,6 @@ const useStyles = makeStyles({
     },
 });
 
-interface User {
-    id: number;
-    username: string;
-    avatar_url: string;
-    is_admin?: boolean;
-    groups?: string[];
-}
-
 interface Tournament {
     id: string;
     name: string;
@@ -72,59 +65,117 @@ interface Tournament {
 }
 
 interface DashboardProps {
-    user: User;
+    user: any; // 保持兼容性，但内部会使用useSession
 }
 
-export function Dashboard({ user }: DashboardProps) {
+export function Dashboard({ user: propUser }: DashboardProps) {
     const styles = useStyles();
     const [selectedTab, setSelectedTab] = useState("overview");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [tournamentLoading, setTournamentLoading] = useState(true);
+    
+    // 使用自定义会话钩子获取用户信息
+    const { user: sessionUser, loading, error, refreshSession } = useUserSession();
+    const user = sessionUser || propUser; // 优先使用session中的用户信息
 
     useEffect(() => {
-        // 模拟获取用户参与的比赛
-        setTimeout(() => {
-            const mockTournaments: Tournament[] = [
-                {
-                    id: "t1",
-                    name: "OSU! World Cup 2025",
-                    mode: "osu",
-                    type: "team",
-                    stages: ["qua", "ro32", "ro16", "sf", "f", "gf"],
-                    current_stage: "ro16",
-                    status: "active",
-                },
-                {
-                    id: "t2",
-                    name: "Taiko Championship",
-                    mode: "taiko",
-                    type: "player",
-                    stages: ["ro32", "ro16", "sf", "f"],
-                    current_stage: "sf",
-                    status: "active",
-                },
-            ];
-            setTournaments(mockTournaments);
-            if (mockTournaments.length > 0) {
-                setSelectedTournament(mockTournaments[0]);
+        // 获取用户参与的比赛
+        const fetchTournaments = async () => {
+            try {
+                setTournamentLoading(true);
+                // 在实际应用中，这里会从API获取数据
+                // 这里使用模拟数据
+                const mockTournaments: Tournament[] = [
+                    {
+                        id: "t1",
+                        name: "OSU! World Cup 2025",
+                        mode: "osu",
+                        type: "team",
+                        stages: ["qua", "ro32", "ro16", "sf", "f", "gf"],
+                        current_stage: "ro16",
+                        status: "active",
+                    },
+                    {
+                        id: "t2",
+                        name: "Taiko Championship",
+                        mode: "taiko",
+                        type: "player",
+                        stages: ["ro32", "ro16", "sf", "f"],
+                        current_stage: "sf",
+                        status: "active",
+                    },
+                ];
+                setTournaments(mockTournaments);
+                if (mockTournaments.length > 0) {
+                    setSelectedTournament(mockTournaments[0]);
+                }
+            } catch (error) {
+                console.error('获取比赛数据失败:', error);
+            } finally {
+                setTournamentLoading(false);
             }
-            setLoading(false);
-        }, 1000);
-    }, []);
+        };
+
+        if (user) {
+            fetchTournaments();
+        }
+    }, [user]);
 
     const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
         setSelectedTab(data.value as string);
     };
 
+    // 处理用户会话加载状态
     if (loading) {
         return (
             <div className={styles.container}>
-                <Text>加载比赛数据中...</Text>
+                <Card>
+                    <CardHeader header={<Title3>加载用户信息中...</Title3>} />
+                </Card>
             </div>
         );
     }
 
+    // 处理用户会话错误
+    if (error) {
+        return (
+            <div className={styles.container}>
+                <Card>
+                    <CardHeader header={<Title3>会话错误</Title3>} />
+                    <MessageBar intent="error">{error}</MessageBar>
+                    <Button onClick={refreshSession} style={{ marginTop: "12px" }}>重新加载</Button>
+                </Card>
+            </div>
+        );
+    }
+
+    // 处理比赛数据加载状态
+    if (tournamentLoading) {
+        return (
+            <div className={styles.container}>
+                <Card>
+                    <CardHeader header={<Title3>加载比赛数据中...</Title3>} />
+                </Card>
+            </div>
+        );
+    }
+
+    // 检查用户是否存在
+    if (!user) {
+        return (
+            <div className={styles.container}>
+                <Card className={styles.noAccessCard}>
+                    <CardHeader
+                        header={<Title2>请先登录</Title2>}
+                        description="您需要登录后才能访问比赛数据。"
+                    />
+                </Card>
+            </div>
+        );
+    }
+
+    // 检查用户是否属于任何比赛组
     if (!user.groups || user.groups.length === 0) {
         return (
             <div className={styles.container}>

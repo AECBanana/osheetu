@@ -31,6 +31,7 @@ import {
     TableColumnDefinition,
     createTableColumn,
 } from "@fluentui/react-components";
+import { type User } from '../../utils/auth';
 import { CreateTournament } from "./admin/CreateTournament";
 import { ManageTournament } from "./admin/ManageTournament";
 
@@ -49,14 +50,6 @@ const useStyles = makeStyles({
         marginBottom: "16px",
     },
 });
-
-interface User {
-    id: number;
-    username: string;
-    avatar_url: string;
-    is_admin?: boolean;
-    groups?: string[];
-}
 
 interface AdminPanelProps {
     user: User;

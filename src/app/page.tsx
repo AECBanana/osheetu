@@ -14,6 +14,7 @@ import {
 import { LoginComponent } from "./components/LoginComponent";
 import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
+import { getSession, logout, type User } from '../utils/auth';
 
 const useStyles = makeStyles({
   container: {
@@ -36,14 +37,6 @@ const useStyles = makeStyles({
   },
 });
 
-interface User {
-  id: number;
-  username: string;
-  avatar_url: string;
-  is_admin?: boolean;
-  groups?: string[];
-}
-
 export default function Home() {
   const styles = useStyles();
   const [user, setUser] = useState<User | null>(null);
@@ -51,23 +44,45 @@ export default function Home() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   useEffect(() => {
-    // 检查本地存储的用户信息
-    const savedUser = localStorage.getItem('osu_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setLoading(false);
+    // 使用NextAuth获取用户会话信息
+    const fetchUserSession = async () => {
+      try {
+        const session = await getSession();
+        if (session?.user) {
+          // 确保返回的是符合客户端User接口的对象
+          const { id, osu_id, username, avatar_url, is_admin, groups } = session.user;
+          setUser({
+            id: id as string,
+            osu_id: osu_id as string,
+            username: username as string,
+            avatar_url: avatar_url as string,
+            is_admin: is_admin as boolean,
+            groups: groups as string[] | undefined
+          });
+        }
+      } catch (error) {
+        console.error('获取用户会话失败:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserSession();
   }, []);
 
   const handleLogin = (userData: User) => {
+    // NextAuth会自动处理用户会话，这里可以添加额外的处理逻辑
     setUser(userData);
-    localStorage.setItem('osu_user', JSON.stringify(userData));
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    localStorage.removeItem('osu_user');
-    setShowAdminPanel(false);
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      setShowAdminPanel(false);
+    } catch (error) {
+      console.error('登出失败:', error);
+    }
   };
 
   if (loading) {
