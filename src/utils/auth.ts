@@ -33,17 +33,31 @@ export const getSession = async () => {
 
 // OSU登录
 export const loginWithOsu = () => {
-  const clientId = process.env.NEXT_PUBLIC_OSU_CLIENT_ID;
+  // 获取环境变量并添加默认值检查
+  const clientId = process.env.NEXT_PUBLIC_OSU_CLIENT_ID || '';
   const redirectUri = process.env.OSU_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
   const scope = 'identify';
 
-  const authUrl = `https://osu.ppy.sh/oauth/authorize?` +
-    `client_id=${clientId}&` +
-    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-    `response_type=code&` +
-    `scope=${scope}`;
+  // 检查客户端ID是否有效
+  if (!clientId || clientId === 'your_client_id_here') {
+    console.error('OSU客户端ID未正确配置，请在.env.local文件中设置实际的客户端ID');
+    alert('OSU客户端ID未正确配置，请联系管理员');
+    return;
+  }
 
-  window.location.href = authUrl;
+  try {
+    // 构建有效的认证URL
+    const authUrl = new URL('https://osu.ppy.sh/oauth/authorize');
+    authUrl.searchParams.append('client_id', clientId);
+    authUrl.searchParams.append('redirect_uri', redirectUri);
+    authUrl.searchParams.append('response_type', 'code');
+    authUrl.searchParams.append('scope', scope);
+
+    window.location.href = authUrl.toString();
+  } catch (error) {
+    console.error('构建OSU认证URL失败:', error);
+    alert('登录失败，请稍后再试');
+  }
 };
 
 // 登出
