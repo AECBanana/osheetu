@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from 'react';
 
 // 服务器端获取环境变量状态的辅助函数
