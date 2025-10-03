@@ -4,6 +4,17 @@ import { initDatabase, testDbConnection } from './db';
 export const initializeApp = async () => {
   try {
     console.log('开始初始化应用...');
+    console.log('环境变量配置:', {
+      NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '已设置' : '未设置',
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL ? '已设置' : '未设置',
+      NEXT_PUBLIC_OSU_CLIENT_ID: process.env.NEXT_PUBLIC_OSU_CLIENT_ID ? '已设置' : '未设置',
+      NEXT_PUBLIC_OSU_CLIENT_SECRET: process.env.NEXT_PUBLIC_OSU_CLIENT_SECRET ? '已设置' : '未设置',
+      DB_HOST: process.env.DB_HOST ? '已设置' : '未设置',
+      DB_PORT: process.env.DB_PORT ? '已设置' : '未设置',
+      DB_USER: process.env.DB_USER ? '已设置' : '未设置',
+      DB_PASSWORD: process.env.DB_PASSWORD ? '已设置' : '未设置',
+      DB_NAME: process.env.DB_NAME ? '已设置' : '未设置'
+    });
     
     // 测试数据库连接
     const dbConnected = await testDbConnection();
