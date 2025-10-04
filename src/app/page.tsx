@@ -291,9 +291,9 @@ export default function Home() {
       setShowSettings(false);
       setSelectedTab("overview");
     } else {
-        if (!user.is_admin && showAdminPanel) {
-            setShowAdminPanel(false);
-        }
+      if (!user.is_admin && showAdminPanel) {
+        setShowAdminPanel(false);
+      }
     }
   }, [user, showAdminPanel]);
 
@@ -355,11 +355,7 @@ export default function Home() {
           className={styles.drawer}
         >
           <NavDrawerHeader>
-            <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
-              <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
-            </Tooltip>
-          </NavDrawerHeader>
-          <NavDrawerBody className={styles.drawerBody}>
+            {/* The Hamburger button was here, now removed. */}
             <div className={styles.drawerHeaderArea}>
               {user ? (
                 <div className={styles.userSummary}>
@@ -373,7 +369,8 @@ export default function Home() {
                 <Body1 className={styles.navPlaceholder}>登录后可访问功能导航</Body1>
               )}
             </div>
-
+          </NavDrawerHeader>
+          <NavDrawerBody className={styles.drawerBody}>
             <div className={styles.drawerScroll}>
               {user ? (
                 <div className={styles.navGroup}>

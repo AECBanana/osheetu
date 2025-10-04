@@ -203,17 +203,6 @@ export function Dashboard({
 
     return (
         <div className={styles.container}>
-            {/* 用户信息 */}
-            <div className={styles.userInfo}>
-                <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
-                <div>
-                    <Text weight="semibold">{user.username}</Text>
-                    <Caption1 style={{ display: "block" }}>
-                        参与比赛: {tournaments.length} 个
-                    </Caption1>
-                </div>
-            </div>
-
             {/* 比赛选择 */}
             {tournaments.length > 1 && (
                 <Card>
@@ -242,12 +231,12 @@ export function Dashboard({
             {selectedTournament && (
                 <>
                     {/* 比赛信息 */}
-                    <Card>
-                        <CardHeader
-                            header={<Title2>{selectedTournament.name}</Title2>}
-                            description={`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'} | 当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}
-                        />
-                    </Card>
+                    <div>
+                        <Title2>{selectedTournament.name}</Title2>
+                        <Text as="p" style={{ marginTop: '4px', color: 'var(--colorNeutralForeground2)' }}>
+                            {`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'} | 当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}
+                        </Text>
+                    </div>
 
                     {/* 标签页内容 */}
                     <div>

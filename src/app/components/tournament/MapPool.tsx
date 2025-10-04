@@ -577,7 +577,7 @@ const useStyles = makeStyles({
             () => [
                 createTableColumn<MapEntry>({
                     columnId: "select",
-                    renderHeaderCell: () => "选择",
+                    renderHeaderCell: () => "",
                     renderCell: (item) => (
                         <input
                             type="checkbox"
@@ -777,19 +777,26 @@ const useStyles = makeStyles({
                         >
                             批量下载 ({selectedMaps.length})
                         </Button>
-                        {canManage && (
-                            <Button
-                                appearance="outline"
-                                icon={<Delete24Regular />}
-                                onClick={handleDeleteSelected}
-                                disabled={selectedMaps.length === 0}
-                            >
-                                移除所选 ({selectedMaps.length})
-                            </Button>
-                        )}
                         <Button appearance="subtle" onClick={handleToggleSelectAll} disabled={maps.length === 0}>
                             {selectedMaps.length === maps.length && maps.length > 0 ? "取消全选" : "全选"}
                         </Button>
+                        {canManage && (
+                            <>
+                                <div style={{ flexGrow: 1 }} />
+                                <Button
+                                    appearance="outline"
+                                    icon={<Delete24Regular />}
+                                    onClick={handleDeleteSelected}
+                                    disabled={selectedMaps.length === 0}
+                                    style={{
+                                        color: "var(--colorPaletteRedForeground1)",
+                                        borderColor: "var(--colorPaletteRedBorder1)",
+                                    }}
+                                >
+                                    移除所选 ({selectedMaps.length})
+                                </Button>
+                            </>
+                        )}
                     </div>
 
                     {error && !loading && (
