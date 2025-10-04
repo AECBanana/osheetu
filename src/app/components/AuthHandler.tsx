@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import {
@@ -31,49 +31,40 @@ function AuthHandlerComponent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const isProcessing = useRef(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
-    if (!code) {
+    if (!code || isProcessing.current) {
       return;
     }
 
-    if (typeof window !== 'undefined') {
-      const processedCode = sessionStorage.getItem('osu_auth_code');
-      if (processedCode === code) {
-        return;
-      }
-    }
+    isProcessing.current = true;
+    setIsLoggingIn(true);
 
-    if (code && !isLoggingIn) {
-      setIsLoggingIn(true);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('osu_auth_code', code);
-      }
-      signIn('osu', { code, redirect: false })
-        .then((result) => {
-          if (result?.ok) {
-            router.replace('/');
-            router.refresh();
-          } else {
-            console.error('登录失败:', result?.error);
-            alert(`登录失败: ${result?.error || '未知错误'}`);
-            router.replace('/');
-          }
-        })
-        .catch(err => {
-          console.error('登录过程中发生意外错误:', err);
-          alert('登录过程中发生意外错误，请查看控制台');
+    signIn('osu', { code, redirect: false })
+      .then((result) => {
+        if (result?.ok) {
           router.replace('/');
-        })
-        .finally(() => {
-          if (typeof window !== 'undefined') {
-            sessionStorage.removeItem('osu_auth_code');
+          router.refresh();
+        } else {
+          console.error('登录失败:', result?.error);
+          // Don't show alert on what is likely a double-call in dev mode
+          if (result?.error && !result.error.includes("revoked")) {
+            alert(`登录失败: ${result?.error || '未知错误'}`);
           }
-          setIsLoggingIn(false);
-        });
-    }
-  }, [searchParams, router, isLoggingIn]);
+          router.replace('/');
+        }
+      })
+      .catch(err => {
+        console.error('登录过程中发生意外错误:', err);
+        alert('登录过程中发生意外错误，请查看控制台');
+        router.replace('/');
+      })
+      .finally(() => {
+        setIsLoggingIn(false);
+      });
+  }, [searchParams, router]);
 
   if (isLoggingIn) {
     return (

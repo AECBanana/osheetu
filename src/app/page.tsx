@@ -446,11 +446,7 @@ export default function Home() {
                   <NavItem value="settings" icon={<SettingsIcon />}>
                     设置
                   </NavItem>
-                ) : (
-                  <Button appearance="primary" onClick={handleLogin}>
-                    使用 OSU! 账号登录
-                  </Button>
-                )}
+                ) : null}
               </div>
             </div>
           </NavDrawerBody>
@@ -478,7 +474,7 @@ export default function Home() {
           </div>
           <div className={styles.mainContent}>
             {!user ? (
-              <LoginComponent />
+              <Body1>请点击右上角按钮登录以使用全部功能。</Body1>
             ) : showAdminPanel && user.is_admin ? (
               <AdminPanel user={user} />
             ) : showSettings ? (
