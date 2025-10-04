@@ -46,8 +46,8 @@ export const initDatabase = async () => {
         osu_id VARCHAR(255) NOT NULL UNIQUE,
         username VARCHAR(255) NOT NULL,
         avatar_url VARCHAR(255),
-        access_token VARCHAR(255),
-        refresh_token VARCHAR(255),
+  access_token TEXT,
+  refresh_token TEXT,
         token_expires_at DATETIME,
         is_admin BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -119,6 +119,16 @@ export const initDatabase = async () => {
         FOREIGN KEY (map_pool_id) REFERENCES map_pools(id) ON DELETE CASCADE
       )
     `);
+
+    try {
+      await query(`
+        ALTER TABLE users
+          MODIFY COLUMN access_token TEXT NULL,
+          MODIFY COLUMN refresh_token TEXT NULL
+      `);
+    } catch (error) {
+      console.warn('调整用户令牌字段长度失败（可能已是最新结构）:', error);
+    }
 
     console.log('数据库表创建成功');
   } catch (error) {
