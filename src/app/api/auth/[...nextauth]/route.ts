@@ -20,7 +20,6 @@ const OsuProvider = CredentialsProvider({
       throw new Error('授权码缺失');
     }
 
-    // 确保环境变量已设置
     const clientId = process.env.OSU_CLIENT_ID;
     const clientSecret = process.env.OSU_CLIENT_SECRET;
     const redirectUri = process.env.OSU_REDIRECT_URI;
@@ -34,17 +33,16 @@ const OsuProvider = CredentialsProvider({
       // 使用授权码获取访问令牌
       const tokenResponse = await axios.post(
         'https://osu.ppy.sh/oauth/token',
-        {
+        new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
           code: credentials.code,
           grant_type: 'authorization_code',
           redirect_uri: redirectUri,
-        },
+        }),
         {
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
           },
         }
       );
