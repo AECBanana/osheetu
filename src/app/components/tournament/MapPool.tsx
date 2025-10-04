@@ -38,7 +38,11 @@ import { useDownloadManager } from "@/app/providers/DownloadManagerProvider";
 
 const useStyles = makeStyles({
         root: {
-            minWidth: "1200px",
+            width: "100%",
+            overflow: "hidden",
+        },
+        dataGridWrapper: {
+            overflowX: "auto",
         },
         container: {
             display: "flex",
@@ -804,10 +808,12 @@ const useStyles = makeStyles({
                     ) : maps.length === 0 ? (
                         <div className={styles.emptyState}>当前阶段尚未配置图池。</div>
                     ) : (
+                        <div className={styles.dataGridWrapper}>
                         <DataGrid
                             items={maps}
                             columns={columns}
                             getRowId={(item) => String(item.id)}
+                            style={{ minWidth: "1600px" }}
                         >
                             <DataGridHeader>
                                 <DataGridRow className={styles.dataRow}>
@@ -830,6 +836,7 @@ const useStyles = makeStyles({
                                 )}
                             </DataGridBody>
                         </DataGrid>
+                        </div>
                     )}
                 </div>
                 <Dialog

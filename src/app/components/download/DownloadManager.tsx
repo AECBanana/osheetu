@@ -50,7 +50,7 @@ const useStyles = makeStyles({
     width: "64px",
     height: "64px",
     padding: 0,
-    borderRadius: "50%",
+    borderRadius: "8%",
     boxShadow: tokens.shadow16,
   },
   circleContent: {

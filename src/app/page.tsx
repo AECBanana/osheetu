@@ -24,6 +24,7 @@ import { useSession } from "next-auth/react";
 import { LoginComponent } from "./components/LoginComponent";
 import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
+import { Settings } from "./components/Settings";
 import { loginWithOsu, logout, type User } from "../utils/auth";
 import { AuthHandler } from "./components/AuthHandler";
 import { useAuthorizedTournaments } from "../utils/hooks";
@@ -43,6 +44,8 @@ import {
   PersonCircle32Regular,
   PersonSearch20Filled,
   PersonSearch20Regular,
+  Settings20Filled,
+  Settings20Regular,
   bundleIcon,
 } from "@fluentui/react-icons";
 
@@ -181,11 +184,13 @@ const PracticeIcon = bundleIcon(DataArea20Filled, DataArea20Regular);
 const AnalysisIcon = bundleIcon(PersonSearch20Filled, PersonSearch20Regular);
 const BanPickIcon = bundleIcon(PeopleStar20Filled, PeopleStar20Regular);
 const AdminIcon = bundleIcon(MegaphoneLoud20Filled, MegaphoneLoud20Regular);
+const SettingsIcon = bundleIcon(Settings20Filled, Settings20Regular);
 
 export default function Home() {
   const styles = useStyles();
   const { data: session, status } = useSession();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
@@ -263,8 +268,13 @@ export default function Home() {
 
       if (data.value === "admin") {
         setShowAdminPanel(true);
+        setShowSettings(false);
+      } else if (data.value === "settings") {
+        setShowSettings(true);
+        setShowAdminPanel(false);
       } else {
         setShowAdminPanel(false);
+        setShowSettings(false);
         setSelectedTab(data.value);
       }
     },
@@ -278,13 +288,16 @@ export default function Home() {
   useEffect(() => {
     if (!user) {
       setShowAdminPanel(false);
+      setShowSettings(false);
       setSelectedTab("overview");
-    } else if (!user.is_admin && showAdminPanel) {
-      setShowAdminPanel(false);
+    } else {
+        if (!user.is_admin && showAdminPanel) {
+            setShowAdminPanel(false);
+        }
     }
   }, [user, showAdminPanel]);
 
-  const navSelectedValue = showAdminPanel ? "admin" : selectedTab;
+  const navSelectedValue = showAdminPanel ? "admin" : showSettings ? "settings" : selectedTab;
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
@@ -430,9 +443,9 @@ export default function Home() {
               <NavDivider />
               <div className={styles.navActions}>
                 {user ? (
-                  <Button appearance="secondary" onClick={handleLogout}>
-                    登出
-                  </Button>
+                  <NavItem value="settings" icon={<SettingsIcon />}>
+                    设置
+                  </NavItem>
                 ) : (
                   <Button appearance="primary" onClick={handleLogin}>
                     使用 OSU! 账号登录
@@ -468,6 +481,8 @@ export default function Home() {
               <LoginComponent />
             ) : showAdminPanel && user.is_admin ? (
               <AdminPanel user={user} />
+            ) : showSettings ? (
+              <Settings />
             ) : (
               <Dashboard
                 user={user}

@@ -113,13 +113,21 @@ export async function POST(
 
   let upstreamResponse: Response;
   try {
-    upstreamResponse = await fetch(sayobotUrl, {
-      headers: {
-        Referer: "https://sheet.rino.ink/",
-        "User-Agent": userAgent,
-        Accept: "*/*",
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+    try {
+      upstreamResponse = await fetch(sayobotUrl, {
+        headers: {
+          Referer: "https://sheet.rino.ink/",
+          "User-Agent": userAgent,
+          Accept: "*/*",
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   } catch (error) {
     console.error("请求 sayobot 下载接口失败:", error);
     return NextResponse.json({ error: "获取图谱下载失败" }, { status: 502 });
