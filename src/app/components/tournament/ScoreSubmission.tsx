@@ -144,28 +144,23 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
 
     const columns: TableColumnDefinition<any>[] = [
         createTableColumn<any>({
-            columnId: "player",
-            renderHeaderCell: () => "玩家",
-            renderCell: (item) => item.player,
+            columnId: "mod",
+            renderHeaderCell: () => "Mod",
+            renderCell: (item) => (
+                <Badge appearance="filled" color="brand">
+                    {item.mods}
+                </Badge>
+            ),
         }),
         createTableColumn<any>({
             columnId: "map",
-            renderHeaderCell: () => "图谱",
+            renderHeaderCell: () => "曲信息",
             renderCell: (item) => item.mapTitle,
         }),
         createTableColumn<any>({
             columnId: "score",
             renderHeaderCell: () => "分数",
             renderCell: (item) => item.score.toLocaleString(),
-        }),
-        createTableColumn<any>({
-            columnId: "mod",
-            renderHeaderCell: () => "Mod",
-            renderCell: (item) => (
-                <Badge appearance="filled" color="brand">
-                    {item.mod}
-                </Badge>
-            ),
         }),
         createTableColumn<any>({
             columnId: "timestamp",
