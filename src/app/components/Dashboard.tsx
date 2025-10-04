@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useEffect } from "react";
 import {
     Title2,
     Title3,
@@ -20,7 +20,7 @@ import { ScoreSubmission } from "./tournament/ScoreSubmission";
 import { PracticeChart } from "./tournament/PracticeChart";
 import { OpponentAnalysis } from "./tournament/OpponentAnalysis";
 import { BanPickBoard } from "./tournament/BanPickBoard";
-import { useUserSession } from '../../utils/hooks';
+import { useUserSession, type AuthorizedTournament } from "../../utils/hooks";
 
 const useStyles = makeStyles({
     container: {
@@ -45,163 +45,60 @@ const useStyles = makeStyles({
     },
 });
 
-type TournamentMode = 'osu' | 'taiko' | 'mania' | 'catch';
-type TournamentType = 'team' | 'player';
-type TournamentStatus = 'active' | 'completed' | 'upcoming';
-type ParticipantRole = 'player' | 'captain' | 'referee' | 'staff';
-type ParticipantStatus = 'active' | 'pending' | 'banned';
-
-interface TournamentParticipantInfo {
-    role: ParticipantRole;
-    status: ParticipantStatus;
-    joined_at: string;
-}
-
-interface Tournament {
-    id: string;
-    name: string;
-    mode: TournamentMode;
-    type: TournamentType;
-    stages: string[];
-    current_stage: string;
-    status: TournamentStatus;
-    include_qualifier: boolean;
-    allow_custom_mods: boolean;
-    participant: TournamentParticipantInfo;
-    can_manage_map_pool: boolean;
-}
-
-const ensureTournamentMode = (value: any): TournamentMode => {
-    return value === "osu" || value === "taiko" || value === "mania" || value === "catch" ? value : "osu";
-};
-
-const ensureTournamentType = (value: any): TournamentType => {
-    return value === "team" || value === "player" ? value : "team";
-};
-
-const ensureTournamentStatus = (value: any): TournamentStatus => {
-    return value === "active" || value === "completed" || value === "upcoming" ? value : "active";
-};
-
-const ensureParticipantRole = (value: any): ParticipantRole => {
-    return value === "captain" || value === "referee" || value === "staff" ? value : "player";
-};
-
-const ensureParticipantStatus = (value: any): ParticipantStatus => {
-    return value === "pending" || value === "banned" ? value : "active";
-};
-
 interface DashboardProps {
-    user: any; // 保持兼容性，但内部会使用useSession
+    user: any;
     selectedTab: string;
+    tournaments: AuthorizedTournament[];
+    tournamentsLoading: boolean;
+    tournamentsError: string | null;
+    onRetryTournaments: () => void | Promise<unknown>;
+    selectedTournamentId: string | null;
+    onSelectTournament: (id: string) => void;
 }
 
-export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
+export function Dashboard({
+    user: propUser,
+    selectedTab,
+    tournaments,
+    tournamentsLoading,
+    tournamentsError,
+    onRetryTournaments,
+    selectedTournamentId,
+    onSelectTournament,
+}: DashboardProps) {
     const styles = useStyles();
-    const [tournaments, setTournaments] = useState<Tournament[]>([]);
-    const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
-    const [tournamentLoading, setTournamentLoading] = useState(true);
-    const [tournamentError, setTournamentError] = useState<string | null>(null);
     
     // 使用自定义会话钩子获取用户信息
     const { user: sessionUser, loading, error, refreshSession } = useUserSession();
     const user = sessionUser || propUser; // 优先使用session中的用户信息
 
+    const selectedTournament = useMemo(() => {
+        if (!tournaments || tournaments.length === 0) {
+            return null;
+        }
+        if (selectedTournamentId) {
+            const matched = tournaments.find((item) => item.id === selectedTournamentId);
+            if (matched) {
+                return matched;
+            }
+        }
+        return tournaments[0];
+    }, [tournaments, selectedTournamentId]);
+
     useEffect(() => {
-        if (!user) {
-            setTournaments([]);
-            setSelectedTournament(null);
+        if (tournaments.length === 0) {
             return;
         }
 
-        let cancelled = false;
+        if (!selectedTournament) {
+            onSelectTournament(tournaments[0].id);
+            return;
+        }
 
-        const fetchAuthorizedTournaments = async () => {
-            setTournamentLoading(true);
-            setTournamentError(null);
-            try {
-                const response = await fetch("/api/tournaments/my", { cache: "no-store" });
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || "获取比赛数据失败");
-                }
-
-                const normalized = (Array.isArray(data.tournaments) ? data.tournaments : []).reduce(
-                    (acc: Tournament[], rawItem: any) => {
-                        const numericId = Number(rawItem?.id);
-                        if (!Number.isFinite(numericId) || numericId <= 0) {
-                            return acc;
-                        }
-
-                        const rawStages = Array.isArray(rawItem?.stages) ? rawItem.stages : [];
-                        const stages = rawStages
-                            .filter((stage: any) => typeof stage === "string" && stage.trim().length > 0)
-                            .map((stage: string) => stage.trim());
-
-                        const participant = rawItem?.participant ?? {};
-
-                        const tournament: Tournament = {
-                            id: String(numericId),
-                            name: String(rawItem?.name ?? "未命名比赛"),
-                            mode: ensureTournamentMode(rawItem?.mode),
-                            type: ensureTournamentType(rawItem?.type),
-                            stages,
-                            current_stage: String(rawItem?.current_stage ?? (stages[0] ?? "")),
-                            status: ensureTournamentStatus(rawItem?.status),
-                            include_qualifier: Boolean(rawItem?.include_qualifier),
-                            allow_custom_mods: Boolean(rawItem?.allow_custom_mods),
-                            participant: {
-                                role: ensureParticipantRole(participant?.role),
-                                status: ensureParticipantStatus(participant?.status),
-                                joined_at: String(participant?.joined_at ?? new Date().toISOString()),
-                            },
-                            can_manage_map_pool: Boolean(rawItem?.can_manage_map_pool),
-                        };
-
-                        acc.push(tournament);
-                        return acc;
-                    },
-                    [] as Tournament[]
-                );
-
-                if (cancelled) {
-                    return;
-                }
-
-                setTournaments(normalized);
-                setSelectedTournament((prev) => {
-                    if (normalized.length === 0) {
-                        return null;
-                    }
-                    if (prev) {
-                        const matched = normalized.find((t: Tournament) => t.id === prev.id);
-                        if (matched) {
-                            return matched;
-                        }
-                    }
-                    return normalized[0];
-                });
-            } catch (error: any) {
-                if (!cancelled) {
-                    console.error("获取比赛数据失败:", error);
-                    setTournamentError(error.message || "获取比赛数据失败");
-                    setTournaments([]);
-                    setSelectedTournament(null);
-                }
-            } finally {
-                if (!cancelled) {
-                    setTournamentLoading(false);
-                }
-            }
-        };
-
-        void fetchAuthorizedTournaments();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [user]);
+        if (selectedTournamentId !== selectedTournament.id) {
+            onSelectTournament(selectedTournament.id);
+        }
+    }, [selectedTournament, selectedTournamentId, tournaments, onSelectTournament]);
 
     // 处理用户会话加载状态
     if (loading) {
@@ -228,11 +125,33 @@ export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
     }
 
     // 处理比赛数据加载状态
-    if (tournamentLoading) {
+    if (tournamentsLoading) {
         return (
             <div className={styles.container}>
                 <Card>
                     <CardHeader header={<Title3>加载比赛数据中...</Title3>} />
+                </Card>
+            </div>
+        );
+    }
+
+    if (tournamentsError) {
+        return (
+            <div className={styles.container}>
+                <Card className={styles.noAccessCard}>
+                    <CardHeader
+                        header={<Title2>无法加载比赛</Title2>}
+                        description="拉取您可访问的比赛时发生错误。"
+                    />
+                    <MessageBar intent="error" style={{ marginTop: "16px" }}>
+                        {tournamentsError}
+                    </MessageBar>
+                    <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "16px" }}>
+                        <Button appearance="primary" onClick={() => { void onRetryTournaments(); }}>
+                            重试
+                        </Button>
+                        <Button onClick={refreshSession}>刷新会话</Button>
+                    </div>
                 </Card>
             </div>
         );
@@ -252,8 +171,8 @@ export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
         );
     }
 
-    // 检查用户是否属于任何比赛组
-    if (!user.groups || user.groups.length === 0) {
+    // 检查用户是否属于任何比赛组（仅在没有匹配的比赛时提醒）
+    if ((!user.groups || user.groups.length === 0) && tournaments.length === 0) {
         return (
             <div className={styles.container}>
                 <Card className={styles.noAccessCard}>
@@ -304,7 +223,7 @@ export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
                             <Button
                                 key={tournament.id}
                                 appearance={selectedTournament?.id === tournament.id ? "primary" : "outline"}
-                                onClick={() => setSelectedTournament(tournament)}
+                                onClick={() => onSelectTournament(tournament.id)}
                             >
                                 {tournament.name}
                                 <Badge

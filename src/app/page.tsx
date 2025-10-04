@@ -17,6 +17,7 @@ import {
   Tooltip,
   makeStyles,
   mergeClasses,
+  Select,
 } from "@fluentui/react-components";
 import { Hamburger } from "@fluentui/react-components";
 import { useSession } from "next-auth/react";
@@ -25,6 +26,7 @@ import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
 import { loginWithOsu, logout, type User } from "../utils/auth";
 import { AuthHandler } from "./components/AuthHandler";
+import { useAuthorizedTournaments } from "../utils/hooks";
 import {
   Board20Filled,
   Board20Regular,
@@ -89,6 +91,18 @@ const useStyles = makeStyles({
     gap: "8px",
     padding: "0 4px",
   },
+  navFooter: {
+    marginTop: "auto",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "0 4px 24px",
+  },
+  tournamentSelect: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
   mainBase: {
     display: "flex",
     flexDirection: "column",
@@ -142,6 +156,7 @@ export default function Home() {
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isNavOpen, setIsNavOpen] = useState(true);
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const loading = status === "loading";
   const mainClassName = mergeClasses(
     styles.mainBase,
@@ -163,6 +178,32 @@ export default function Home() {
       groups: groups as string[] | undefined,
     } satisfies User;
   }, [session]);
+
+  const {
+    tournaments,
+    loading: tournamentsLoading,
+    error: tournamentsError,
+    refresh: refreshTournaments,
+  } = useAuthorizedTournaments(user);
+
+  useEffect(() => {
+    if (!user) {
+      setSelectedTournamentId(null);
+      return;
+    }
+
+    if (tournaments.length === 0) {
+      setSelectedTournamentId(null);
+      return;
+    }
+
+    setSelectedTournamentId((prev) => {
+      if (prev && tournaments.some((item) => item.id === prev)) {
+        return prev;
+      }
+      return tournaments[0].id;
+    });
+  }, [user, tournaments]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -314,17 +355,44 @@ export default function Home() {
               </div>
             )}
 
-            <NavDivider />
-            <div className={styles.navActions}>
-              {user ? (
-                <Button appearance="secondary" onClick={handleLogout}>
-                  登出
-                </Button>
-              ) : (
-                <Button appearance="primary" onClick={handleLogin}>
-                  使用 OSU! 账号登录
-                </Button>
+            <div className={styles.navFooter}>
+              {user && (
+                <div className={styles.tournamentSelect}>
+                  <Caption1>切换比赛</Caption1>
+                  <Select
+                    value={selectedTournamentId ?? ""}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setSelectedTournamentId(value || null);
+                    }}
+                    disabled={tournamentsLoading || tournaments.length === 0}
+                  >
+                    {tournaments.length === 0 ? (
+                      <option value="">
+                        {tournamentsError ? `加载失败：${tournamentsError}` : "暂无可用比赛"}
+                      </option>
+                    ) : (
+                      tournaments.map((tournament) => (
+                        <option key={tournament.id} value={tournament.id}>
+                          {tournament.name}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                </div>
               )}
+              <NavDivider />
+              <div className={styles.navActions}>
+                {user ? (
+                  <Button appearance="secondary" onClick={handleLogout}>
+                    登出
+                  </Button>
+                ) : (
+                  <Button appearance="primary" onClick={handleLogin}>
+                    使用 OSU! 账号登录
+                  </Button>
+                )}
+              </div>
             </div>
           </NavDrawerBody>
         </NavDrawer>
@@ -355,7 +423,16 @@ export default function Home() {
             ) : showAdminPanel && user.is_admin ? (
               <AdminPanel user={user} />
             ) : (
-              <Dashboard user={user} selectedTab={selectedTab} />
+              <Dashboard
+                user={user}
+                selectedTab={selectedTab}
+                tournaments={tournaments}
+                tournamentsLoading={tournamentsLoading}
+                tournamentsError={tournamentsError}
+                onRetryTournaments={refreshTournaments}
+                selectedTournamentId={selectedTournamentId}
+                onSelectTournament={setSelectedTournamentId}
+              />
             )}
           </div>
         </div>

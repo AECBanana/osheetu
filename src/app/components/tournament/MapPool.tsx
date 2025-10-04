@@ -6,8 +6,6 @@ import {
     CardHeader,
     Title3,
     Button,
-    Input,
-    Field,
     Text,
     Badge,
     DataGrid,
@@ -46,10 +44,11 @@ interface Tournament {
     id: string;
     name: string;
     current_stage: string;
+    can_manage_map_pool?: boolean;
 }
 
 interface User {
-    id: number;
+    id: number | string;
     username: string;
 }
 
@@ -132,6 +131,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
     const [maps] = useState<Beatmap[]>(mockMaps);
     const [selectedMaps, setSelectedMaps] = useState<string[]>([]);
     const [showMessage, setShowMessage] = useState(false);
+    const canManage = Boolean(tournament.can_manage_map_pool);
 
     const getModColor = (mod: string) => {
         const colors = {
@@ -146,6 +146,10 @@ export function MapPool({ tournament, user }: MapPoolProps) {
     };
 
     const copyBeatmapIds = () => {
+        if (!canManage) {
+            return;
+        }
+
         const selectedBids = maps
             .filter(map => selectedMaps.includes(map.id))
             .map(map => map.bid)
@@ -157,6 +161,10 @@ export function MapPool({ tournament, user }: MapPoolProps) {
     };
 
     const downloadSelected = () => {
+        if (!canManage) {
+            return;
+        }
+
         const selectedBids = maps
             .filter(map => selectedMaps.includes(map.id))
             .map(map => map.bid);
@@ -173,8 +181,12 @@ export function MapPool({ tournament, user }: MapPoolProps) {
             renderCell: (item) => (
                 <input
                     type="checkbox"
+                    disabled={!canManage}
                     checked={selectedMaps.includes(item.id)}
                     onChange={(e) => {
+                        if (!canManage) {
+                            return;
+                        }
                         if (e.target.checked) {
                             setSelectedMaps([...selectedMaps, item.id]);
                         } else {
@@ -263,12 +275,18 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                 </MessageBar>
             )}
 
+            {!canManage && (
+                <MessageBar intent="warning" style={{ margin: "16px" }}>
+                    仅队长可以管理图池。当前账号 {user.username} 可浏览图池内容，如需调整请联系队长或管理员。
+                </MessageBar>
+            )}
+
             <div className={styles.actionButtons} style={{ padding: "0 16px" }}>
                 <Button
                     appearance="primary"
                     icon={<ArrowDownloadRegular />}
                     onClick={downloadSelected}
-                    disabled={selectedMaps.length === 0}
+                    disabled={!canManage || selectedMaps.length === 0}
                 >
                     批量下载 ({selectedMaps.length})
                 </Button>
@@ -276,19 +294,23 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                     appearance="outline"
                     icon={<CopyRegular />}
                     onClick={copyBeatmapIds}
-                    disabled={selectedMaps.length === 0}
+                    disabled={!canManage || selectedMaps.length === 0}
                 >
                     复制BID ({selectedMaps.length})
                 </Button>
                 <Button
                     appearance="subtle"
                     onClick={() => {
+                        if (!canManage) {
+                            return;
+                        }
                         if (selectedMaps.length === maps.length) {
                             setSelectedMaps([]);
                         } else {
                             setSelectedMaps(maps.map(m => m.id));
                         }
                     }}
+                    disabled={!canManage}
                 >
                     {selectedMaps.length === maps.length ? "取消全选" : "全选"}
                 </Button>
