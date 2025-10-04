@@ -49,13 +49,17 @@ import {
 const useStyles = makeStyles({
   shell: {
     display: "flex",
-    minHeight: "100vh",
+    width: "100vw",
+    height: "100vh",
+    overflow: "hidden",
     backgroundColor: "var(--colorNeutralBackground2)",
   },
   drawer: {
     flex: "0 0 auto",
-    minHeight: "100%",
+    height: "100%",
     borderRight: "1px solid var(--colorNeutralStroke2)",
+    display: "flex",
+    flexDirection: "column",
   },
   shellCollapsed: {
     flexDirection: "column",
@@ -68,7 +72,22 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "16px",
     paddingBottom: "24px",
-    height: "100%",
+    flexGrow: 1,
+    overflow: "hidden",
+  },
+  drawerHeaderArea: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "0 4px",
+  },
+  drawerScroll: {
+    flexGrow: 1,
+    overflowY: "auto",
+    padding: "0 4px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
   },
   userSummary: {
     display: "flex",
@@ -116,6 +135,9 @@ const useStyles = makeStyles({
     gap: "24px",
     padding: "32px 40px",
     flex: 1,
+    height: "100%",
+    minWidth: 0,
+    overflow: "hidden",
   },
   mainConstrained: {
     maxWidth: "1200px",
@@ -143,6 +165,9 @@ const useStyles = makeStyles({
   },
   mainContent: {
     flex: 1,
+    minHeight: 0,
+    overflowY: "auto",
+    paddingRight: "8px",
   },
   navPlaceholder: {
     padding: "0 4px",
@@ -261,6 +286,14 @@ export default function Home() {
 
   const navSelectedValue = showAdminPanel ? "admin" : selectedTab;
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className={mergeClasses(styles.shell, !isNavOpen && styles.shellCollapsed)}>
@@ -314,53 +347,59 @@ export default function Home() {
             </Tooltip>
           </NavDrawerHeader>
           <NavDrawerBody className={styles.drawerBody}>
-            <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
-            {user ? (
-              <div className={styles.userSummary}>
-                <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
-                <div className={styles.userInfo}>
-                  <Text weight="semibold">{user.username}</Text>
-                  <Caption1>{user.is_admin ? "管理员" : "参赛选手"}</Caption1>
+            <div className={styles.drawerHeaderArea}>
+              <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
+              {user ? (
+                <div className={styles.userSummary}>
+                  <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
+                  <div className={styles.userInfo}>
+                    <Text weight="semibold">{user.username}</Text>
+                    <Caption1>{user.is_admin ? "管理员" : "参赛选手"}</Caption1>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <Body1 className={styles.navPlaceholder}>登录后可访问功能导航</Body1>
-            )}
+              ) : (
+                <Body1 className={styles.navPlaceholder}>登录后可访问功能导航</Body1>
+              )}
+            </div>
 
-            {user && (
-              <div className={styles.navGroup}>
-                <NavSectionHeader>基础功能</NavSectionHeader>
-                <NavItem value="overview" icon={<OverviewIcon />}>
-                  总览
-                </NavItem>
-                <NavItem value="scores" icon={<ScoresIcon />}>
-                  分数提交
-                </NavItem>
+            <div className={styles.drawerScroll}>
+              {user ? (
+                <div className={styles.navGroup}>
+                  <NavSectionHeader>基础功能</NavSectionHeader>
+                  <NavItem value="overview" icon={<OverviewIcon />}>
+                    总览
+                  </NavItem>
+                  <NavItem value="scores" icon={<ScoresIcon />}>
+                    分数提交
+                  </NavItem>
 
-                <NavSectionHeader>对局工具</NavSectionHeader>
-                <NavItem value="mappool" icon={<MapPoolIcon />}>
-                  图池
-                </NavItem>
-                <NavItem value="practice" icon={<PracticeIcon />}>
-                  练图表总览
-                </NavItem>
-                <NavItem value="analysis" icon={<AnalysisIcon />}>
-                  对手分析
-                </NavItem>
-                <NavItem value="banpick" icon={<BanPickIcon />}>
-                  BP记分板
-                </NavItem>
+                  <NavSectionHeader>对局工具</NavSectionHeader>
+                  <NavItem value="mappool" icon={<MapPoolIcon />}>
+                    图池
+                  </NavItem>
+                  <NavItem value="practice" icon={<PracticeIcon />}>
+                    练图表总览
+                  </NavItem>
+                  <NavItem value="analysis" icon={<AnalysisIcon />}>
+                    对手分析
+                  </NavItem>
+                  <NavItem value="banpick" icon={<BanPickIcon />}>
+                    BP记分板
+                  </NavItem>
 
-                {user.is_admin && (
-                  <>
-                    <NavSectionHeader>管理</NavSectionHeader>
-                    <NavItem value="admin" icon={<AdminIcon />}>
-                      管理面板
-                    </NavItem>
-                  </>
-                )}
-              </div>
-            )}
+                  {user.is_admin && (
+                    <>
+                      <NavSectionHeader>管理</NavSectionHeader>
+                      <NavItem value="admin" icon={<AdminIcon />}>
+                        管理面板
+                      </NavItem>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Body1 className={styles.navPlaceholder}>登录后可浏览功能菜单</Body1>
+              )}
+            </div>
 
             <div className={styles.navFooter}>
               {user && (
