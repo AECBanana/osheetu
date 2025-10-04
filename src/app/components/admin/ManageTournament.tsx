@@ -13,6 +13,12 @@ import {
     DataGridHeader,
     DataGridHeaderCell,
     DataGridRow,
+    Dialog,
+    DialogActions,
+    DialogBody,
+    DialogContent,
+    DialogSurface,
+    DialogTitle,
     Dropdown,
     Field,
     Input,
@@ -66,12 +72,33 @@ const useStyles = makeStyles({
         gap: "4px",
     },
     participantsForm: {
-        display: "grid",
-        gridTemplateColumns: "minmax(200px, 1fr) 160px 160px 120px",
+        display: "flex",
+        flexWrap: "wrap",
         gap: "12px",
-        alignItems: "end",
-        maxWidth: "760px",
+        alignItems: "flex-end",
         marginBottom: "16px",
+        "@media (max-width: 600px)": {
+            flexDirection: "column",
+            alignItems: "stretch",
+        },
+    },
+    formField: {
+        flex: "1 1 240px",
+        minWidth: "220px",
+        "@media (max-width: 600px)": {
+            width: "100%",
+        },
+    },
+    actionWrapper: {
+        display: "flex",
+        alignItems: "flex-end",
+        minWidth: "160px",
+        "@media (max-width: 600px)": {
+            width: "100%",
+        },
+    },
+    addParticipantButton: {
+        width: "100%",
     },
     participantCell: {
         display: "flex",
@@ -82,6 +109,67 @@ const useStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "2px",
+    },
+    participantSelector: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+    },
+    selectedUserCard: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "12px",
+        padding: "12px",
+        borderRadius: "8px",
+        backgroundColor: "var(--colorNeutralBackground3)",
+    },
+    selectedUserInfo: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+    },
+    selectedUserMeta: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "2px",
+    },
+    userSearchRow: {
+        display: "flex",
+        gap: "12px",
+        flexWrap: "wrap",
+        alignItems: "center",
+        marginBottom: "16px",
+    },
+    userList: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "8px",
+        maxHeight: "360px",
+        overflowY: "auto",
+    },
+    userListItem: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 12px",
+        borderRadius: "8px",
+        backgroundColor: "var(--colorNeutralBackground3)",
+    },
+    userListInfo: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+    },
+    modalActions: {
+        display: "flex",
+        justifyContent: "flex-end",
+        gap: "8px",
+    },
+    emptyState: {
+        padding: "24px 0",
+        textAlign: "center",
+        color: "var(--colorNeutralForeground3)",
     },
 });
 
@@ -158,11 +246,22 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
     const [saving, setSaving] = useState(false);
     const [participantBusy, setParticipantBusy] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [participantForm, setParticipantForm] = useState<{ osuId: string; role: ParticipantRole; status: ParticipantStatus }>({
-        osuId: "",
-        role: "player",
-        status: "active",
-    });
+    const [participantForm, setParticipantForm] = useState<{ user: SelectableUser | null; role: ParticipantRole; status: ParticipantStatus }>(
+        {
+            user: null,
+            role: "player",
+            status: "active",
+        }
+    );
+    const [userPickerOpen, setUserPickerOpen] = useState(false);
+    const [availableUsers, setAvailableUsers] = useState<SelectableUser[]>([]);
+    const [usersLoading, setUsersLoading] = useState(false);
+    const [usersError, setUsersError] = useState<string | null>(null);
+    const [userSearch, setUserSearch] = useState("");
+    const [manualOsuId, setManualOsuId] = useState("");
+    const [manualLoading, setManualLoading] = useState(false);
+    const [manualError, setManualError] = useState<string | null>(null);
+    const [manualResult, setManualResult] = useState<SelectableUser | null>(null);
 
     const emitSummaryUpdate = useCallback((detailData: TournamentDetail, participantCount: number) => {
         onUpdated({
@@ -253,8 +352,8 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
     }, [emitSummaryUpdate, formState, participants.length, tournamentId]);
 
     const handleAddParticipant = useCallback(async () => {
-        if (!participantForm.osuId.trim()) {
-            setFeedback({ intent: "error", text: "请输入参与者的 osu! ID" });
+        if (!participantForm.user) {
+            setFeedback({ intent: "error", text: "请先选择一个用户" });
             return;
         }
         setParticipantBusy(true);
@@ -266,7 +365,7 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    osuId: participantForm.osuId.trim(),
+                    osuId: participantForm.user.osu_id,
                     role: participantForm.role,
                     status: participantForm.status,
                 }),
@@ -276,7 +375,10 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                 throw new Error(data.error || "添加参与者失败");
             }
             setParticipants(data.participants);
-            setParticipantForm({ osuId: "", role: "player", status: "active" });
+            setParticipantForm((prev) => ({
+                ...prev,
+                user: null,
+            }));
             if (detail) {
                 emitSummaryUpdate(detail, data.participants.length);
             }
@@ -338,6 +440,147 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
             setDeleting(false);
         }
     }, [detail, onBack, onDeleted, tournamentId]);
+
+    const loadUsers = useCallback(async (searchTerm?: string) => {
+        setUsersLoading(true);
+        setUsersError(null);
+        try {
+            const params = new URLSearchParams({ limit: "50" });
+            if (searchTerm?.trim()) {
+                params.set("q", searchTerm.trim());
+            }
+            const response = await fetch(`/api/admin/users?${params.toString()}`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "获取用户列表失败");
+            }
+            const normalized: SelectableUser[] = Array.isArray(data.users)
+                ? data.users.map((user: any) => {
+                      const rawId = user.id;
+                      const parsedId =
+                          typeof rawId === "number" && Number.isFinite(rawId)
+                              ? rawId
+                              : typeof rawId === "string" && rawId.trim() !== "" && !Number.isNaN(Number(rawId))
+                              ? Number(rawId)
+                              : null;
+
+                      return {
+                          id: parsedId,
+                          osu_id: String(user.osu_id ?? ""),
+                          username: String(user.username ?? ""),
+                          avatar_url: user.avatar_url ?? null,
+                          is_admin: Boolean(user.is_admin),
+                          groups: Array.isArray(user.groups) ? user.groups : [],
+                          source: user.source === "external" ? "external" : "registered",
+                          profile: user.profile ?? undefined,
+                      } satisfies SelectableUser;
+                  })
+                : [];
+            setAvailableUsers(normalized);
+        } catch (error: any) {
+            setUsersError(error.message || "获取用户列表失败");
+        } finally {
+            setUsersLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (userPickerOpen) {
+            setUserSearch("");
+            setManualOsuId("");
+            setManualError(null);
+            setManualResult(null);
+            void loadUsers();
+        }
+    }, [loadUsers, userPickerOpen]);
+
+    const existingOsuIds = useMemo(() => new Set(participants.map((p) => p.osu_id)), [participants]);
+
+    const filteredUsers = useMemo(() => {
+        const keyword = userSearch.trim().toLowerCase();
+        return availableUsers
+            .filter((user) => !existingOsuIds.has(user.osu_id))
+            .filter((user) => {
+                if (!keyword) {
+                    return true;
+                }
+                return (
+                    user.username.toLowerCase().includes(keyword) ||
+                    user.osu_id.toLowerCase().includes(keyword) ||
+                    user.groups.some((group) => group.toLowerCase().includes(keyword))
+                );
+            })
+            .sort((a, b) => a.username.localeCompare(b.username));
+    }, [availableUsers, existingOsuIds, userSearch]);
+
+    const handleManualLookup = useCallback(async () => {
+        const trimmed = manualOsuId.trim();
+        if (!trimmed) {
+            setManualError("请输入 osu! UID");
+            setManualResult(null);
+            return;
+        }
+
+        setManualLoading(true);
+        setManualError(null);
+        setManualResult(null);
+
+        try {
+            const response = await fetch(`/api/admin/users?osuId=${encodeURIComponent(trimmed)}`);
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "未找到对应的用户");
+            }
+
+            const rawUser = data.user;
+            if (!rawUser) {
+                throw new Error("未找到对应的用户");
+            }
+
+            const rawId = rawUser.id;
+            const parsedId =
+                typeof rawId === "number" && Number.isFinite(rawId)
+                    ? rawId
+                    : typeof rawId === "string" && rawId.trim() !== "" && !Number.isNaN(Number(rawId))
+                    ? Number(rawId)
+                    : null;
+
+            const candidate: SelectableUser = {
+                id: parsedId,
+                osu_id: String(rawUser.osu_id ?? ""),
+                username: String(rawUser.username ?? ""),
+                avatar_url: rawUser.avatar_url ?? null,
+                is_admin: Boolean(rawUser.is_admin),
+                groups: Array.isArray(rawUser.groups) ? rawUser.groups : [],
+                source: rawUser.source === "registered" ? "registered" : "external",
+                profile: rawUser.profile ?? undefined,
+            };
+
+            if (existingOsuIds.has(candidate.osu_id)) {
+                setManualError("该用户已在比赛名单中");
+                setManualResult(null);
+                return;
+            }
+
+            setManualResult(candidate);
+        } catch (error: any) {
+            setManualError(error.message || "解析 osu! UID 失败");
+            setManualResult(null);
+        } finally {
+            setManualLoading(false);
+        }
+    }, [existingOsuIds, manualOsuId]);
+
+    const handleUserPick = useCallback((user: SelectableUser) => {
+        setParticipantForm((prev) => ({
+            ...prev,
+            user,
+        }));
+        setManualResult(null);
+        setManualError(null);
+        setManualOsuId("");
+        setUserPickerOpen(false);
+    }, []);
 
     const participantColumns: TableColumnDefinition<Participant>[] = useMemo(() => [
         createTableColumn<Participant>({
@@ -446,9 +689,20 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Field label="当前阶段">
                                 <Dropdown
                                     selectedOptions={[formState.currentStage]}
-                                    onOptionSelect={(_, data) =>
-                                        setFormState({ ...formState, currentStage: data.optionValue as string })
-                                    }
+                                    onOptionSelect={(_, data) => {
+                                        const optionValue = data.optionValue as string | undefined;
+                                        if (!optionValue) {
+                                            return;
+                                        }
+                                        setFormState((prev) =>
+                                            prev
+                                                ? {
+                                                      ...prev,
+                                                      currentStage: optionValue,
+                                                  }
+                                                : prev
+                                        );
+                                    }}
                                     disabled={saving || deleting || detail?.stages.length === 0}
                                 >
                                     {detail?.stages.map((stage) => (
@@ -461,9 +715,20 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Field label="比赛状态">
                                 <Dropdown
                                     selectedOptions={[formState.status]}
-                                    onOptionSelect={(_, data) =>
-                                        setFormState({ ...formState, status: data.optionValue as TournamentStatus })
-                                    }
+                                    onOptionSelect={(_, data) => {
+                                        const optionValue = data.optionValue as TournamentStatus | undefined;
+                                        if (!optionValue) {
+                                            return;
+                                        }
+                                        setFormState((prev) =>
+                                            prev
+                                                ? {
+                                                      ...prev,
+                                                      status: optionValue,
+                                                  }
+                                                : prev
+                                        );
+                                    }}
                                     disabled={saving || deleting}
                                 >
                                     <Option value="upcoming">即将开始</Option>
@@ -477,7 +742,14 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Switch
                                 checked={formState.includeQualifier}
                                 onChange={(_, data) =>
-                                    setFormState({ ...formState, includeQualifier: !!data.checked })
+                                    setFormState((prev) =>
+                                        prev
+                                            ? {
+                                                  ...prev,
+                                                  includeQualifier: !!data.checked,
+                                              }
+                                            : prev
+                                    )
                                 }
                                 label="包含资格赛阶段"
                                 disabled={saving || deleting}
@@ -485,7 +757,14 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Switch
                                 checked={formState.allowCustomMods}
                                 onChange={(_, data) =>
-                                    setFormState({ ...formState, allowCustomMods: !!data.checked })
+                                    setFormState((prev) =>
+                                        prev
+                                            ? {
+                                                  ...prev,
+                                                  allowCustomMods: !!data.checked,
+                                              }
+                                            : prev
+                                    )
                                 }
                                 label="允许自定义 Mod"
                                 disabled={saving || deleting}
@@ -544,20 +823,71 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                 />
 
                 <div className={styles.participantsForm}>
-                    <Field label="osu! ID">
-                        <Input
-                            value={participantForm.osuId}
-                            onChange={(e) => setParticipantForm({ ...participantForm, osuId: e.target.value })}
-                            disabled={participantBusy || deleting}
-                            placeholder="输入参与者的 osu! ID"
-                        />
+                    <Field label="参与者" className={styles.formField}>
+                        <div className={styles.participantSelector}>
+                            {participantForm.user ? (
+                                <div className={styles.selectedUserCard}>
+                                    <div className={styles.selectedUserInfo}>
+                                        <Avatar
+                                            name={participantForm.user.username}
+                                            image={{ src: participantForm.user.avatar_url ?? undefined }}
+                                            size={32}
+                                        />
+                                        <div className={styles.selectedUserMeta}>
+                                            <Text weight="semibold">{participantForm.user.username}</Text>
+                                            <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                                osu! ID: {participantForm.user.osu_id}
+                                            </Text>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: "flex", gap: "8px" }}>
+                                        <Button
+                                            appearance="secondary"
+                                            size="small"
+                                            onClick={() => setUserPickerOpen(true)}
+                                            disabled={participantBusy || deleting}
+                                        >
+                                            更换
+                                        </Button>
+                                        <Button
+                                            appearance="subtle"
+                                            size="small"
+                                            onClick={() =>
+                                                setParticipantForm((prev) => ({
+                                                    ...prev,
+                                                    user: null,
+                                                }))
+                                            }
+                                            disabled={participantBusy || deleting}
+                                        >
+                                            清除
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Button
+                                    appearance="primary"
+                                    onClick={() => setUserPickerOpen(true)}
+                                    disabled={participantBusy || deleting}
+                                >
+                                    选择用户
+                                </Button>
+                            )}
+                        </div>
                     </Field>
-                    <Field label="角色">
+                    <Field label="角色" className={styles.formField}>
                         <Dropdown
                             selectedOptions={[participantForm.role]}
-                            onOptionSelect={(_, data) =>
-                                setParticipantForm({ ...participantForm, role: data.optionValue as ParticipantRole })
-                            }
+                            onOptionSelect={(_, data) => {
+                                const optionValue = data.optionValue as ParticipantRole | undefined;
+                                if (!optionValue) {
+                                    return;
+                                }
+                                setParticipantForm((prev) => ({
+                                    ...prev,
+                                    role: optionValue,
+                                }));
+                            }}
                             disabled={participantBusy || deleting}
                         >
                             <Option value="player">选手</Option>
@@ -566,12 +896,19 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Option value="staff">工作人员</Option>
                         </Dropdown>
                     </Field>
-                    <Field label="状态">
+                    <Field label="状态" className={styles.formField}>
                         <Dropdown
                             selectedOptions={[participantForm.status]}
-                            onOptionSelect={(_, data) =>
-                                setParticipantForm({ ...participantForm, status: data.optionValue as ParticipantStatus })
-                            }
+                            onOptionSelect={(_, data) => {
+                                const optionValue = data.optionValue as ParticipantStatus | undefined;
+                                if (!optionValue) {
+                                    return;
+                                }
+                                setParticipantForm((prev) => ({
+                                    ...prev,
+                                    status: optionValue,
+                                }));
+                            }}
                             disabled={participantBusy || deleting}
                         >
                             <Option value="active">生效</Option>
@@ -579,14 +916,179 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Option value="banned">禁赛</Option>
                         </Dropdown>
                     </Field>
-                    <Button
-                        appearance="primary"
-                        onClick={handleAddParticipant}
-                        disabled={participantBusy || deleting}
-                    >
-                        {participantBusy ? "处理中..." : "添加参与者"}
-                    </Button>
+                    <div className={styles.actionWrapper}>
+                        <Button
+                            appearance="primary"
+                            className={styles.addParticipantButton}
+                            onClick={handleAddParticipant}
+                            disabled={participantBusy || deleting}
+                        >
+                            {participantBusy ? "处理中..." : "添加参与者"}
+                        </Button>
+                    </div>
                 </div>
+
+                <Dialog open={userPickerOpen} onOpenChange={(_, data) => setUserPickerOpen(!!data.open)}>
+                    <DialogSurface>
+                        <DialogBody>
+                            <DialogTitle>选择参与者</DialogTitle>
+                            <DialogContent>
+                                <div className={styles.userSearchRow}>
+                                    <Field
+                                        label="搜索注册用户"
+                                        style={{ flex: "1 1 260px", minWidth: "240px" }}
+                                    >
+                                        <Input
+                                            value={userSearch}
+                                            onChange={(e) => setUserSearch(e.target.value)}
+                                            placeholder="输入用户名、osu! ID 或分组关键词"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    void loadUsers(userSearch);
+                                                }
+                                            }}
+                                        />
+                                    </Field>
+                                    <Button
+                                        appearance="primary"
+                                        onClick={() => void loadUsers(userSearch)}
+                                        disabled={usersLoading}
+                                    >
+                                        {usersLoading ? "搜索中..." : "搜索"}
+                                    </Button>
+                                    <Button
+                                        appearance="secondary"
+                                        onClick={() => {
+                                            setUserSearch("");
+                                            void loadUsers();
+                                        }}
+                                        disabled={usersLoading}
+                                    >
+                                        重置
+                                    </Button>
+                                </div>
+                                <div className={styles.userSearchRow}>
+                                    <Field
+                                        label="手动输入 osu! UID"
+                                        style={{ flex: "1 1 260px", minWidth: "240px" }}
+                                    >
+                                        <Input
+                                            value={manualOsuId}
+                                            onChange={(e) => setManualOsuId(e.target.value)}
+                                            placeholder="输入 osu! UID 解析未注册用户"
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    void handleManualLookup();
+                                                }
+                                            }}
+                                        />
+                                    </Field>
+                                    <Button
+                                        appearance="primary"
+                                        onClick={() => void handleManualLookup()}
+                                        disabled={manualLoading}
+                                    >
+                                        {manualLoading ? "解析中..." : "解析"}
+                                    </Button>
+                                </div>
+                                {manualError && (
+                                    <MessageBar intent="warning" style={{ marginBottom: "12px" }}>
+                                        <MessageBarBody>
+                                            <MessageBarTitle>提示</MessageBarTitle>
+                                            {manualError}
+                                        </MessageBarBody>
+                                    </MessageBar>
+                                )}
+                                {manualResult && (
+                                    <div className={styles.selectedUserCard} style={{ marginBottom: "16px" }}>
+                                        <div className={styles.selectedUserInfo}>
+                                            <Avatar
+                                                name={manualResult.username}
+                                                image={{ src: manualResult.avatar_url ?? undefined }}
+                                                size={32}
+                                            />
+                                            <div className={styles.selectedUserMeta}>
+                                                <Text weight="semibold">{manualResult.username}</Text>
+                                                <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                                    osu! ID: {manualResult.osu_id}
+                                                </Text>
+                                                {manualResult.profile && (
+                                                    <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                                        PP: {manualResult.profile.pp ?? "-"} | 世界排名: {manualResult.profile.global_rank ?? "-"}
+                                                    </Text>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                                            <Badge appearance="outline" color={manualResult.source === "registered" ? "brand" : "warning"}>
+                                                {manualResult.source === "registered" ? "已注册用户" : "外部查询"}
+                                            </Badge>
+                                            <Button appearance="primary" size="small" onClick={() => handleUserPick(manualResult)}>
+                                                选择
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                                {usersError && (
+                                    <MessageBar intent="error" style={{ marginBottom: "12px" }}>
+                                        <MessageBarBody>
+                                            <MessageBarTitle>加载失败</MessageBarTitle>
+                                            {usersError}
+                                        </MessageBarBody>
+                                    </MessageBar>
+                                )}
+                                {usersLoading ? (
+                                    <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+                                        <Spinner label="获取用户列表..." />
+                                    </div>
+                                ) : filteredUsers.length > 0 ? (
+                                    <div className={styles.userList}>
+                                        {filteredUsers.map((user) => (
+                                            <div key={user.osu_id} className={styles.userListItem}>
+                                                <div className={styles.userListInfo}>
+                                                    <Avatar
+                                                        name={user.username}
+                                                        image={{ src: user.avatar_url ?? undefined }}
+                                                        size={32}
+                                                    />
+                                                    <div className={styles.selectedUserMeta}>
+                                                        <Text weight="semibold">{user.username}</Text>
+                                                        <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                                            osu! ID: {user.osu_id}
+                                                        </Text>
+                                                        {user.groups.length > 0 && (
+                                                            <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                                                                {user.groups.map((group) => (
+                                                                    <Badge key={group} appearance="tint">
+                                                                        {group}
+                                                                    </Badge>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Button appearance="primary" size="small" onClick={() => handleUserPick(user)}>
+                                                    选择
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={styles.emptyState}>
+                                        没有可选择的用户，可能已经全部加入或没有匹配搜索条件。
+                                    </div>
+                                )}
+                            </DialogContent>
+                            <DialogActions className={styles.modalActions}>
+                                <Button appearance="secondary" onClick={() => setUserPickerOpen(false)}>
+                                    关闭
+                                </Button>
+                            </DialogActions>
+                        </DialogBody>
+                    </DialogSurface>
+                </Dialog>
 
                 <DataGrid
                     items={participants}
@@ -615,4 +1117,20 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
             </Card>
         </div>
     );
+}
+
+interface SelectableUser {
+    id: number | null;
+    osu_id: string;
+    username: string;
+    avatar_url: string | null;
+    is_admin: boolean;
+    groups: string[];
+    source: "registered" | "external";
+    profile?: {
+        country_code: string | null;
+        global_rank: number | null;
+        country_rank: number | null;
+        pp: number | null;
+    };
 }

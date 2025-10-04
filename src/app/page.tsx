@@ -16,6 +16,7 @@ import {
   Title2,
   Tooltip,
   makeStyles,
+  mergeClasses,
 } from "@fluentui/react-components";
 import { Hamburger } from "@fluentui/react-components";
 import { useSession } from "next-auth/react";
@@ -88,14 +89,20 @@ const useStyles = makeStyles({
     gap: "8px",
     padding: "0 4px",
   },
-  main: {
+  mainBase: {
     display: "flex",
     flexDirection: "column",
     gap: "24px",
     padding: "32px 40px",
-    maxWidth: "1200px",
     width: "100%",
+  },
+  mainConstrained: {
+    maxWidth: "1200px",
     margin: "0 auto",
+  },
+  mainExpanded: {
+    maxWidth: "none",
+    margin: "0",
   },
   mainHeader: {
     display: "flex",
@@ -136,6 +143,10 @@ export default function Home() {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isNavOpen, setIsNavOpen] = useState(true);
   const loading = status === "loading";
+  const mainClassName = mergeClasses(
+    styles.mainBase,
+    isNavOpen ? styles.mainConstrained : styles.mainExpanded
+  );
 
   const user = useMemo(() => {
     if (!session?.user) {
@@ -220,7 +231,7 @@ export default function Home() {
             <Body1 className={styles.navPlaceholder}>加载中...</Body1>
           </NavDrawerBody>
         </NavDrawer>
-        <div className={styles.main}>
+        <div className={mainClassName}>
           <div className={styles.mainHeader}>
             <div className={styles.mainHeaderLeft}>
               <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
@@ -317,7 +328,7 @@ export default function Home() {
             </div>
           </NavDrawerBody>
         </NavDrawer>
-        <div className={styles.main}>
+        <div className={mainClassName}>
           <div className={styles.mainHeader}>
             <div className={styles.mainHeaderLeft}>
               <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
