@@ -13,7 +13,10 @@ export const initializeApp = async () => {
       DB_PORT: process.env.DB_PORT ? '已设置' : '未设置',
       DB_USER: process.env.DB_USER ? '已设置' : '未设置',
       DB_PASSWORD: process.env.DB_PASSWORD ? '已设置' : '未设置',
-      DB_NAME: process.env.DB_NAME ? '已设置' : '未设置'
+      DB_NAME: process.env.DB_NAME ? '已设置' : '未设置',
+      OSU_CLIENT_ID: process.env.OSU_CLIENT_ID ? '已设置' : '未设置',
+      OSU_CLIENT_SECRET: process.env.OSU_CLIENT_SECRET ? '已设置' : '未设置',
+      OSU_REDIRECT_URI: process.env.OSU_REDIRECT_URI ? '已设置' : '未设置',
     });
     
     // 测试数据库连接
