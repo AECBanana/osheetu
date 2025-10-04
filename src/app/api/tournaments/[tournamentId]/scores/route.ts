@@ -5,14 +5,14 @@ import { query } from "@/utils/db";
 
 export async function GET(
     request: NextRequest,
-    context: { params: { tournamentId: string } }
+    { params }: { params: Promise<{ tournamentId: string }> }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { tournamentId } = context.params;
+    const { tournamentId } = await params;
 
     try {
         const sql = `
@@ -40,12 +40,14 @@ export async function GET(
 
 export async function POST(
     request: NextRequest,
-    context: { params: { tournamentId: string } }
+    { params }: { params: Promise<{ tournamentId: string }> }
 ) {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const { tournamentId } = await params;
 
     const { mapId, score } = await request.json();
 
