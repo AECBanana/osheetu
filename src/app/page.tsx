@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import {
   Title1,
   Body1,
@@ -10,10 +10,11 @@ import {
   makeStyles,
   tokens,
 } from "@fluentui/react-components";
+import { useSession } from "next-auth/react";
 import { LoginComponent } from "./components/LoginComponent";
 import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
-import { getSession, logout, type User } from '../utils/auth';
+import { logout, type User } from "../utils/auth";
 import { AuthHandler } from "./components/AuthHandler";
 
 const useStyles = makeStyles({
@@ -39,52 +40,39 @@ const useStyles = makeStyles({
 
 export default function Home() {
   const styles = useStyles();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const loading = status === "loading";
+  const user = useMemo(() => {
+    if (!session?.user) {
+      return null;
+    }
 
-  useEffect(() => {
-    const fetchUserSession = async () => {
-      try {
-        const session = await getSession();
-        if (session?.user) {
-          const { id, osu_id, username, avatar_url, is_admin, groups } = session.user;
-          setUser({
-            id: id as string,
-            osu_id: osu_id as string,
-            username: username as string,
-            avatar_url: avatar_url as string,
-            is_admin: is_admin as boolean,
-            groups: groups as string[] | undefined
-          });
-        } else {
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('获取用户会话失败:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserSession();
-    
-  }, []);
-
-  const handleLogin = (userData: User) => {
-    setUser(userData);
-  };
+    const { id, osu_id, username, avatar_url, is_admin, groups } = session.user as User;
+    return {
+      id: id as string,
+      osu_id: osu_id as string,
+      username: username as string,
+      avatar_url: avatar_url as string,
+      is_admin: is_admin as boolean,
+      groups: groups as string[] | undefined
+    } satisfies User;
+  }, [session]);
 
   const handleLogout = async () => {
     try {
       await logout();
-      setUser(null);
       setShowAdminPanel(false);
     } catch (error) {
       console.error('登出失败:', error);
     }
   };
+
+  useEffect(() => {
+    if (!user) {
+      setShowAdminPanel(false);
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -116,7 +104,7 @@ export default function Home() {
                 header={<Title1>欢迎使用 OSU! 比赛管理系统</Title1>}
                 description="请使用 OSU! 账号登录以访问完整功能"
               />
-              <LoginComponent onLogin={handleLogin} />
+              <LoginComponent />
             </Card>
           </>
         ) : showAdminPanel && user.is_admin ? (

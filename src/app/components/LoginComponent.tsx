@@ -13,7 +13,7 @@ import {
     Spinner,
     MessageBar,
 } from "@fluentui/react-components";
-import { loginWithOsu, type User } from '../../utils/auth';
+import { loginWithOsu } from '../../utils/auth';
 
 const useStyles = makeStyles({
     loginCard: {
@@ -40,11 +40,7 @@ const useStyles = makeStyles({
     },
 });
 
-interface LoginComponentProps {
-    onLogin: (user: User) => void;
-}
-
-export function LoginComponent({ onLogin }: LoginComponentProps) {
+export function LoginComponent() {
     const styles = useStyles();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

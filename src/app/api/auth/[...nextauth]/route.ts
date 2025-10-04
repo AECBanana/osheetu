@@ -1,7 +1,6 @@
 import { type JWT } from 'next-auth/jwt';
 import { type User } from '../../../../utils/auth';
-import CredentialsProvider, { CredentialsConfig } from 'next-auth/providers/credentials';
-import axios from 'axios';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import { saveOrUpdateUser, fetchOsuUserInfo } from '../../../../utils/auth-server';
 import NextAuth, { type NextAuthOptions, type Session } from 'next-auth';
 
@@ -30,25 +29,29 @@ const OsuProvider = CredentialsProvider({
     }
 
     try {
-      // 使用授权码获取访问令牌
-      const tokenResponse = await axios.post(
-        'https://osu.ppy.sh/oauth/token',
-        {
+      // 使用 fetch API 进行令牌交换，参照成功案例
+      const tokenResponse = await fetch('https://osu.ppy.sh/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
           code: credentials.code,
           grant_type: 'authorization_code',
           redirect_uri: redirectUri,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        }
-      );
+        }),
+      });
 
-      const { access_token, refresh_token, expires_in } = tokenResponse.data;
+      if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        console.error('OSU令牌交换失败:', tokenResponse.status, errorText);
+        throw new Error(`令牌交换失败: ${errorText}`);
+      }
+
+      const tokenData = await tokenResponse.json();
+      const { access_token, refresh_token, expires_in } = tokenData;
 
       // 使用访问令牌获取用户信息
       const osuUser = await fetchOsuUserInfo(access_token);
@@ -74,15 +77,9 @@ const OsuProvider = CredentialsProvider({
         refresh_token,
       };
     } catch (error: any) {
-      console.error('OSU认证流程失败:', error.response?.data || error.message);
-      // 抛出更具体的错误信息
-      if (error.response?.data?.error === 'invalid_grant') {
-        throw new Error('无效的授权码或授权码已过期。请重新登录。');
-      }
-      if (error.response?.data?.error === 'invalid_client') {
-        throw new Error('服务器认证配置错误，请联系管理员。');
-      }
-      throw new Error(error.response?.data?.message || '认证时发生未知错误。');
+      console.error('OSU认证流程失败:', error.message);
+      // 直接抛出错误，NextAuth会捕获并传递给前端
+      throw new Error(error.message || '认证时发生未知错误。');
     }
   },
 });

@@ -39,20 +39,21 @@ function AuthHandlerComponent() {
       signIn('osu', { code, redirect: false })
         .then((result) => {
           if (result?.ok) {
-            router.replace('/', undefined);
+            router.replace('/');
+            router.refresh();
           } else {
             console.error('登录失败:', result?.error);
             alert(`登录失败: ${result?.error || '未知错误'}`);
-            router.replace('/', undefined);
+            router.replace('/');
           }
         })
         .catch(err => {
           console.error('登录过程中发生意外错误:', err);
           alert('登录过程中发生意外错误，请查看控制台');
-          router.replace('/', undefined);
+          router.replace('/');
         })
         .finally(() => {
-          // The redirect will trigger a re-render, no need to setIsLoggingIn(false)
+          setIsLoggingIn(false);
         });
     }
   }, [searchParams, router, isLoggingIn]);

@@ -1,5 +1,6 @@
 "use client"
 
+import { SessionProvider } from "next-auth/react";
 import {
     FluentProvider,
     webLightTheme
@@ -7,8 +8,10 @@ import {
 
 export function AppContent({ children }: { children: React.ReactNode }) {
     return (
-        <FluentProvider theme={webLightTheme}>
-            {children}
-        </FluentProvider>
+        <SessionProvider>
+            <FluentProvider theme={webLightTheme}>
+                {children}
+            </FluentProvider>
+        </SessionProvider>
     );
 }
