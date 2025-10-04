@@ -5,8 +5,8 @@ import { useState, useEffect } from 'react';
 // 服务器端获取环境变量状态的辅助函数
 async function fetchEnvStatus() {
   try {
-    // 使用我们之前创建的简单环境变量检查端点
-    const response = await fetch('/api/simple-env-check');
+    // 使用我们的环境变量检查端点
+    const response = await fetch('/api/check-env');
     if (!response.ok) {
       throw new Error('获取环境变量状态失败');
     }
@@ -35,7 +35,7 @@ async function testCriticalServices() {
 
   try {
     // 测试数据库连接是否配置正确
-    const dbResponse = await fetch('/api/test-db-connection');
+    const dbResponse = await fetch('/api/init');
     const dbResult = await dbResponse.json();
     results.dbConnectionTest = {
       success: dbResponse.ok && dbResult.success,
@@ -49,13 +49,19 @@ async function testCriticalServices() {
   }
 
   try {
-    // 测试认证服务是否配置正确
-    const authResponse = await fetch('/api/test-auth-config');
-    const authResult = await authResponse.json();
-    results.authServiceTest = {
-      success: authResponse.ok && authResult.success,
-      message: authResult.message || (authResponse.ok ? '认证服务配置测试成功' : '认证服务配置测试失败')
-    };
+    // 测试认证服务配置
+    const envCheckResponse = await fetch('/api/check-env');
+    const envCheckResult = await envCheckResponse.json();
+    
+    if (envCheckResponse.ok) {
+      const authConfigured = envCheckResult.featureChecks?.osuLogin?.isConfigured || false;
+      results.authServiceTest = {
+        success: authConfigured,
+        message: authConfigured ? '认证服务配置正确' : '认证服务配置不完整'
+      };
+    } else {
+      throw new Error('环境变量检查失败');
+    }
   } catch (error) {
     results.authServiceTest = {
       success: false,
@@ -128,47 +134,58 @@ export default function VercelEnvTestPage() {
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
           <h3 className="text-lg font-semibold text-blue-800 mb-2">部署环境信息</h3>
           <div className="grid grid-cols-2 gap-2">
-            <p><span className="font-medium">运行环境:</span> {envStatus.runningOnVercel ? 'Vercel' : '本地/其他环境'}</p>
-            <p><span className="font-medium">NODE_ENV:</span> {envStatus.nodeEnv}</p>
-            <p><span className="font-medium">VERCEL_ENV:</span> {envStatus.vercelEnv || '未设置'}</p>
-            <p><span className="font-medium">VERCEL_URL:</span> {envStatus.vercelUrl}</p>
+            <p><span className="font-medium">运行环境:</span> {process.env.VERCEL ? 'Vercel' : '本地/其他环境'}</p>
+            <p><span className="font-medium">NODE_ENV:</span> {process.env.NODE_ENV}</p>
+            <p><span className="font-medium">VERCEL_ENV:</span> {process.env.VERCEL_ENV || '未设置'}</p>
+            <p><span className="font-medium">VERCEL_URL:</span> {process.env.VERCEL_URL}</p>
           </div>
         </div>
 
-        {envStatus.missingAppVars && envStatus.missingAppVars.length > 0 && (
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-md">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">环境变量状态</h3>
+          <div className="space-y-2">
+            {Object.entries(envStatus.environmentVariables || {}).map(([key, status]) => (
+              <div key={key} className="flex justify-between">
+                <span className="capitalize">{key}:</span>
+                <span className={`font-medium ${status === '已设置' ? 'text-green-600' : 'text-red-600'}`}>{String(status)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {envStatus.featureChecks?.osuLogin && !envStatus.featureChecks.osuLogin.isConfigured && (
           <div className="p-4 bg-red-50 border border-red-200 rounded-md text-red-700">
-            <h3 className="text-lg font-semibold mb-2">❌ 缺失的应用环境变量:</h3>
+            <h3 className="text-lg font-semibold mb-2">❌ OSU登录功能配置不完整:</h3>
             <ul className="list-disc pl-5 space-y-1">
-              {envStatus.missingAppVars.map((varName: string, index: number) => (
-                <li key={index}>{varName}</li>
+              {envStatus.featureChecks.osuLogin.issues.map((issue: string, index: number) => (
+                <li key={index}>{issue}</li>
               ))}
             </ul>
           </div>
         )}
 
-        {envStatus.missingVercelVars && envStatus.missingVercelVars.length > 0 && (
+        {envStatus.featureChecks?.nextAuth && !envStatus.featureChecks.nextAuth.isConfigured && (
           <div className="p-4 bg-orange-50 border border-orange-200 rounded-md text-orange-700">
-            <h3 className="text-lg font-semibold mb-2">⚠️ 缺失的Vercel特有环境变量:</h3>
+            <h3 className="text-lg font-semibold mb-2">⚠️ NextAuth配置不完整:</h3>
             <ul className="list-disc pl-5 space-y-1">
-              {envStatus.missingVercelVars.map((varName: string, index: number) => (
-                <li key={index}>{varName}</li>
+              {envStatus.featureChecks.nextAuth.issues.map((issue: string, index: number) => (
+                <li key={index}>{issue}</li>
               ))}
             </ul>
           </div>
         )}
 
-        {(!envStatus.missingAppVars || envStatus.missingAppVars.length === 0) && 
-         (!envStatus.missingVercelVars || envStatus.missingVercelVars.length === 0) && (
+        {(envStatus.featureChecks?.osuLogin?.isConfigured && envStatus.featureChecks?.nextAuth?.isConfigured) && (
           <div className="p-4 bg-green-50 border border-green-200 rounded-md text-green-700">
-            <h3 className="text-lg font-semibold mb-2">✅ 所有检查的环境变量都已正确设置!</h3>
+            <h3 className="text-lg font-semibold mb-2">✅ 所有核心功能的环境变量都已正确设置!</h3>
           </div>
         )}
 
-        {envStatus.troubleshootingTips && (
+        {envStatus.recommendations && (
           <div className="p-4 bg-purple-50 border border-purple-200 rounded-md">
-            <h3 className="text-lg font-semibold text-purple-800 mb-2">排查建议:</h3>
+            <h3 className="text-lg font-semibold text-purple-800 mb-2">配置建议:</h3>
             <ul className="list-disc pl-5 space-y-2">
-              {envStatus.troubleshootingTips.map((tip: string, index: number) => (
+              {envStatus.recommendations.map((tip: string, index: number) => (
                 <li key={index}>{tip}</li>
               ))}
             </ul>
@@ -259,10 +276,10 @@ export default function VercelEnvTestPage() {
 
           <div className="px-4 py-3 bg-gray-50 sm:px-6 sm:flex sm:flex-row-reverse">
             <div className="mt-3 text-center sm:mt-0 sm:ml-3 sm:text-left">
-              <p className="text-sm text-gray-500">
-                如需帮助，请参考项目根目录下的 VERCEL_ENV_VARS_GUIDE.md 和 VERCEL_ENV_VARS_TROUBLESHOOTING.md 文件
-              </p>
-            </div>
+            <p className="text-sm text-gray-500">
+              如需帮助，请参考项目根目录下的 .env.example 文件查看所需的环境变量配置
+            </p>
+          </div>
           </div>
         </div>
       </div>

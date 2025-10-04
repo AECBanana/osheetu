@@ -34,7 +34,7 @@ export const getSession = async () => {
 // OSU登录
 export const loginWithOsu = () => {
   // 获取环境变量并添加默认值检查
-  const clientId = process.env.NEXT_PUBLIC_OSU_CLIENT_ID || '';
+  const clientId = process.env.OSU_CLIENT_ID || '';
   const redirectUri = process.env.OSU_REDIRECT_URI || 'http://localhost:3000/api/auth/callback';
   const scope = 'identify';
 

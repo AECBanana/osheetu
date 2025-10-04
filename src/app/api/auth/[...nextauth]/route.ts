@@ -25,7 +25,7 @@ const OsuProvider = CredentialsProvider({
       const tokenResponse = await axios.post(
         'https://osu.ppy.sh/oauth/token',
         new URLSearchParams({
-          client_id: process.env.NEXT_PUBLIC_OSU_CLIENT_ID || '',
+          client_id: process.env.OSU_CLIENT_ID || '',
           client_secret: process.env.OSU_CLIENT_SECRET || '',
           code: credentials.code,
           grant_type: 'authorization_code',
