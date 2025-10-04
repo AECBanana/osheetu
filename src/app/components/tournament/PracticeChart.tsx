@@ -19,6 +19,7 @@ import {
     DataGridBody,
     TableColumnDefinition,
     createTableColumn,
+    Avatar,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -60,6 +61,7 @@ interface Participant {
     username: string;
     role: string;
     status: string;
+    avatar_url?: string;
 }
 
 interface ScoreData {
@@ -165,7 +167,7 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
             mod,
             averageScore: data.scores.length > 0 ? Math.round(data.scores.reduce((a, b) => a + b, 0) / data.scores.length) : 0,
             highestScore: data.scores.length > 0 ? Math.max(...data.scores) : 0,
-            topPlayers: data.players.slice(0, 3), // Top 3 players
+            topPlayers: data.players.slice(0, 4), // Top 4 players
             completionRate: data.totalMaps > 0 ? Math.round((data.scores.length / (data.totalMaps * participants.length)) * 100) : 0,
             totalScores: data.scores.length,
             totalMaps: data.totalMaps,
@@ -200,38 +202,6 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
 
     const teamOverviewData = getTeamOverviewData();
     const activeParticipants = participants.filter(p => p.status === 'active');
-
-    const overviewColumns: TableColumnDefinition<any>[] = [
-        createTableColumn<any>({
-            columnId: "mod",
-            renderHeaderCell: () => "Mod",
-            renderCell: (item) => (
-                <Badge appearance="filled" color={getModColor(item.mod) as any}>
-                    {item.mod}
-                </Badge>
-            ),
-        }),
-        createTableColumn<any>({
-            columnId: "averageScore",
-            renderHeaderCell: () => "平均分",
-            renderCell: (item) => item.averageScore.toLocaleString(),
-        }),
-        createTableColumn<any>({
-            columnId: "highestScore",
-            renderHeaderCell: () => "最高分",
-            renderCell: (item) => item.highestScore.toLocaleString(),
-        }),
-        createTableColumn<any>({
-            columnId: "topPlayers",
-            renderHeaderCell: () => "最高分成员",
-            renderCell: (item) => item.topPlayers.join(", "),
-        }),
-        createTableColumn<any>({
-            columnId: "completionRate",
-            renderHeaderCell: () => "完成情况",
-            renderCell: (item) => `${item.completionRate}% (${item.totalScores}/${item.totalMaps * activeParticipants.length})`,
-        }),
-    ];
 
     const playerColumns: TableColumnDefinition<any>[] = [
         createTableColumn<any>({
@@ -280,28 +250,64 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                             />
                         </Card>
 
-                        <DataGrid
-                            items={teamOverviewData}
-                            columns={overviewColumns}
-                            getRowId={(item) => item.mod}
-                        >
-                            <DataGridHeader>
-                                <DataGridRow>
-                                    {({ renderHeaderCell }) => (
-                                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                                    )}
-                                </DataGridRow>
-                            </DataGridHeader>
-                            <DataGridBody<any>>
-                                {({ item, rowId }) => (
-                                    <DataGridRow<any> key={rowId}>
-                                        {({ renderCell }) => (
-                                            <DataGridCell>{renderCell(item)}</DataGridCell>
-                                        )}
-                                    </DataGridRow>
-                                )}
-                            </DataGridBody>
-                        </DataGrid>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "20px" }}>
+                            {teamOverviewData.map((data) => (
+                                <Card key={data.mod} style={{ padding: "16px" }}>
+                                    <CardHeader
+                                        header={
+                                            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                                                <Badge appearance="filled" color={getModColor(data.mod) as any} size="large">
+                                                    {data.mod}
+                                                </Badge>
+                                                <Text weight="semibold" style={{ fontSize: "18px" }}>Mod 统计</Text>
+                                            </div>
+                                        }
+                                    />
+
+                                    <div style={{ display: "grid", gap: "12px" }}>
+                                        <div>
+                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>平均分</Text>
+                                            <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#0078d4" }}>
+                                                {data.averageScore.toLocaleString()}
+                                            </Text>
+                                        </div>
+
+                                        <div>
+                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>最高分</Text>
+                                            <Text style={{ fontSize: "20px", fontWeight: "bold" }}>
+                                                {data.highestScore.toLocaleString()}
+                                            </Text>
+                                        </div>
+
+                                        <div>
+                                            <Text weight="semibold" style={{ display: "block", marginBottom: "8px" }}>最高分成员</Text>
+                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                                {data.topPlayers.map((playerName) => {
+                                                    const participant = participants.find(p => p.username === playerName);
+                                                    return (
+                                                        <div key={playerName} style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#f3f2f1", padding: "4px 8px", borderRadius: "4px" }}>
+                                                            <Avatar
+                                                                size={24}
+                                                                name={playerName}
+                                                                image={{ src: participant?.avatar_url || undefined }}
+                                                            />
+                                                            <Text size={200}>{playerName}</Text>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>完成情况</Text>
+                                            <Text>
+                                                {data.completionRate}% ({data.totalScores}/{data.totalMaps * activeParticipants.length})
+                                            </Text>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
                 )}
 
