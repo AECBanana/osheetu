@@ -55,9 +55,11 @@ export function LoginComponent({ onLogin }: LoginComponentProps) {
 
         try {
             // 调用OSU OAuth登录
-            loginWithOsu();
+            await loginWithOsu();
+            // 注意：由于loginWithOsu会导致页面跳转，这里的代码在成功时不会执行
         } catch (err) {
             setError('登录失败，请重试');
+        } finally {
             setLoading(false);
         }
     };
