@@ -33,16 +33,17 @@ const OsuProvider = CredentialsProvider({
       // 使用授权码获取访问令牌
       const tokenResponse = await axios.post(
         'https://osu.ppy.sh/oauth/token',
-        new URLSearchParams({
+        {
           client_id: clientId,
           client_secret: clientSecret,
           code: credentials.code,
           grant_type: 'authorization_code',
           redirect_uri: redirectUri,
-        }),
+        },
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         }
       );
