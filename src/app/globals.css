@@ -37,14 +37,20 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5); /* gray-400 with 50% opacity */
+  background-color: rgba(156, 163, 175, 0);
+  /* gray-400 with 50% opacity */
   border-radius: 10px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7); /* gray-400 with 70% opacity */
+  background-color: rgba(156, 163, 175, 0.7);
+  /* gray-400 with 70% opacity */
+}
+
+::-webkit-scrollbar-button {
+  display: none;
 }
 
 /* Firefox */

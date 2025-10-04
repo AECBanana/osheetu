@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Card,
     CardHeader,
@@ -10,7 +10,6 @@ import {
     Field,
     Dropdown,
     Option,
-    Text,
     Badge,
     DataGrid,
     DataGridHeader,
@@ -22,18 +21,22 @@ import {
     createTableColumn,
     MessageBar,
     makeStyles,
+    Spinner,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
     formGrid: {
         display: "grid",
-        gridTemplateColumns: "1fr 1fr 1fr auto",
+        gridTemplateColumns: "1fr 1fr auto",
         gap: "12px",
         alignItems: "end",
         marginBottom: "16px",
     },
     scoreHistory: {
         marginTop: "24px",
+    },
+    fullWidthField: {
+        gridColumn: "1 / -1",
     },
 });
 
@@ -47,15 +50,12 @@ interface User {
     username: string;
 }
 
-interface ScoreEntry {
-    id: string;
-    player: string;
-    mapTitle: string;
-    score: number;
-    mod: string;
-    accuracy: number;
-    combo: number;
-    timestamp: string;
+interface MapPoolEntry {
+    id: number;
+    mod_value: string;
+    beatmap_id: number;
+    title: string;
+    difficulty: string;
 }
 
 interface ScoreSubmissionProps {
@@ -63,80 +63,102 @@ interface ScoreSubmissionProps {
     user: User;
 }
 
-const mockScores: ScoreEntry[] = [
-    {
-        id: "1",
-        player: "Player1",
-        mapTitle: "Sidetracked Day",
-        score: 875432,
-        mod: "NM",
-        accuracy: 98.45,
-        combo: 1247,
-        timestamp: "2025-09-29 14:30",
-    },
-    {
-        id: "2",
-        player: "Player2",
-        mapTitle: "GHOST",
-        score: 692847,
-        mod: "HD",
-        accuracy: 96.12,
-        combo: 985,
-        timestamp: "2025-09-29 15:15",
-    },
-];
-
 export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
     const styles = useStyles();
-    const [scores, setScores] = useState<ScoreEntry[]>(mockScores);
-    const [newScore, setNewScore] = useState({
-        player: "",
-        mapTitle: "",
-        score: "",
-        mod: "NM",
-    });
-    const [showMessage, setShowMessage] = useState(false);
+    const [scores, setScores] = useState<any[]>([]);
+    const [loadingScores, setLoadingScores] = useState(true);
+    const [mapPool, setMapPool] = useState<MapPoolEntry[]>([]);
+    const [loadingMapPool, setLoadingMapPool] = useState(true);
+    const [selectedMap, setSelectedMap] = useState<string | undefined>(undefined);
+    const [score, setScore] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [feedback, setFeedback] = useState<{ intent: "success" | "error"; text: string } | null>(null);
 
-    const handleSubmit = () => {
-        if (!newScore.player || !newScore.mapTitle || !newScore.score) {
-            alert("请填写所有必填字段");
+    const loadData = useCallback(async () => {
+        if (!tournament.id) return;
+        setLoadingMapPool(true);
+        setLoadingScores(true);
+        setFeedback(null);
+        try {
+            // Fetch map pool
+            const mapPoolResponse = await fetch(`/api/tournaments/${tournament.id}/map-pool`);
+            const mapPoolData = await mapPoolResponse.json();
+            if (!mapPoolResponse.ok) {
+                throw new Error(mapPoolData.error || "加载图池失败");
+            }
+            const sortedMaps = (mapPoolData.maps || []).sort((a: MapPoolEntry, b: MapPoolEntry) => {
+                const modCompare = a.mod_value.localeCompare(b.mod_value);
+                if (modCompare !== 0) return modCompare;
+                return a.beatmap_id - b.beatmap_id;
+            });
+            setMapPool(sortedMaps);
+
+            // Fetch scores
+            const scoresResponse = await fetch(`/api/tournaments/${tournament.id}/scores`);
+            const scoresData = await scoresResponse.json();
+            if (!scoresResponse.ok) {
+                throw new Error(scoresData.error || "加载分数历史失败");
+            }
+            setScores(scoresData.scores || []);
+
+        } catch (err) {
+            console.error(err);
+            setFeedback({ intent: "error", text: err instanceof Error ? err.message : "加载数据时出错" });
+        } finally {
+            setLoadingMapPool(false);
+            setLoadingScores(false);
+        }
+    }, [tournament.id]);
+
+    useEffect(() => {
+        void loadData();
+    }, [loadData]);
+
+    const handleSubmit = async () => {
+        if (!selectedMap || !score) {
+            setFeedback({ intent: "error", text: "请选择图谱并填写分数" });
             return;
         }
-
-        const scoreEntry: ScoreEntry = {
-            id: Date.now().toString(),
-            player: newScore.player,
-            mapTitle: newScore.mapTitle,
-            score: parseInt(newScore.score),
-            mod: newScore.mod,
-            accuracy: 0, // 这里需要从API获取
-            combo: 0, // 这里需要从API获取
-            timestamp: new Date().toLocaleString(),
-        };
-
-        setScores([scoreEntry, ...scores]);
-        setNewScore({ player: "", mapTitle: "", score: "", mod: "NM" });
-        setShowMessage(true);
-        setTimeout(() => setShowMessage(false), 3000);
+        setSubmitting(true);
+        setFeedback(null);
+        try {
+            const response = await fetch(`/api/tournaments/${tournament.id}/scores`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mapId: selectedMap, score }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "提交分数失败");
+            }
+            setFeedback({ intent: "success", text: "分数提交成功！" });
+            setSelectedMap(undefined);
+            setScore("");
+            await loadData(); // Refresh scores
+        } catch (err) {
+            setFeedback({ intent: "error", text: err instanceof Error ? err.message : "提交时发生错误" });
+        } finally {
+            setSubmitting(false);
+        }
     };
 
-    const columns: TableColumnDefinition<ScoreEntry>[] = [
-        createTableColumn<ScoreEntry>({
+    const columns: TableColumnDefinition<any>[] = [
+        createTableColumn<any>({
             columnId: "player",
             renderHeaderCell: () => "玩家",
             renderCell: (item) => item.player,
         }),
-        createTableColumn<ScoreEntry>({
+        createTableColumn<any>({
             columnId: "map",
             renderHeaderCell: () => "图谱",
             renderCell: (item) => item.mapTitle,
         }),
-        createTableColumn<ScoreEntry>({
+        createTableColumn<any>({
             columnId: "score",
             renderHeaderCell: () => "分数",
             renderCell: (item) => item.score.toLocaleString(),
         }),
-        createTableColumn<ScoreEntry>({
+        createTableColumn<any>({
             columnId: "mod",
             renderHeaderCell: () => "Mod",
             renderCell: (item) => (
@@ -145,15 +167,10 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
                 </Badge>
             ),
         }),
-        createTableColumn<ScoreEntry>({
-            columnId: "accuracy",
-            renderHeaderCell: () => "准确率",
-            renderCell: (item) => `${item.accuracy}%`,
-        }),
-        createTableColumn<ScoreEntry>({
+        createTableColumn<any>({
             columnId: "timestamp",
             renderHeaderCell: () => "提交时间",
-            renderCell: (item) => item.timestamp,
+            renderCell: (item) => new Date(item.timestamp).toLocaleString(),
         }),
     ];
 
@@ -162,56 +179,51 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
             <Card>
                 <CardHeader
                     header={<Title3>分数提交</Title3>}
-                    description="提交队友的练习分数和使用的Mod"
+                    description="选择图池中的地图，然后提交你的练习分数"
                 />
 
-                {showMessage && (
-                    <MessageBar intent="success" style={{ margin: "16px" }}>
-                        分数提交成功！
+                {feedback && (
+                    <MessageBar intent={feedback.intent} style={{ margin: "16px" }}>
+                        {feedback.text}
                     </MessageBar>
                 )}
 
                 <div className={styles.formGrid} style={{ padding: "16px" }}>
-                    <Field label="玩家名称" required>
-                        <Input
-                            value={newScore.player}
-                            onChange={(e) => setNewScore({ ...newScore, player: e.target.value })}
-                            placeholder="输入玩家OSU用户名"
-                        />
-                    </Field>
-
-                    <Field label="图谱" required>
-                        <Input
-                            value={newScore.mapTitle}
-                            onChange={(e) => setNewScore({ ...newScore, mapTitle: e.target.value })}
-                            placeholder="图谱名称或BID"
-                        />
+                    <Field label="选择图谱" required>
+                        <Dropdown
+                            placeholder={loadingMapPool ? "加载图池中..." : "选择一个图谱"}
+                            disabled={loadingMapPool || mapPool.length === 0}
+                            value={selectedMap ? mapPool.find(m => m.id.toString() === selectedMap)?.title : ""}
+                            onOptionSelect={(_, data) => {
+                                if (data.optionValue) {
+                                    setSelectedMap(data.optionValue);
+                                    setFeedback(null);
+                                }
+                            }}
+                        >
+                            {mapPool.map((map) => (
+                                <Option key={map.id} value={map.id.toString()}>
+                                    {`${map.mod_value}: ${map.title} [${map.difficulty}]`}
+                                </Option>
+                            ))}
+                        </Dropdown>
                     </Field>
 
                     <Field label="分数" required>
                         <Input
                             type="number"
-                            value={newScore.score}
-                            onChange={(e) => setNewScore({ ...newScore, score: e.target.value })}
-                            placeholder="分数"
+                            value={score}
+                            onChange={(e) => {
+                                setScore(e.target.value);
+                                setFeedback(null);
+                            }}
+                            placeholder="输入分数"
+                            disabled={submitting}
                         />
                     </Field>
 
-                    <Field label="Mod">
-                        <Dropdown
-                            value={newScore.mod}
-                            onOptionSelect={(_, data) => setNewScore({ ...newScore, mod: data.optionValue || "NM" })}
-                        >
-                            <Option value="NM">NM</Option>
-                            <Option value="HD">HD</Option>
-                            <Option value="HR">HR</Option>
-                            <Option value="DT">DT</Option>
-                            <Option value="FM">FM</Option>
-                        </Dropdown>
-                    </Field>
-
-                    <Button appearance="primary" onClick={handleSubmit}>
-                        提交分数
+                    <Button appearance="primary" onClick={handleSubmit} disabled={submitting || loadingMapPool}>
+                        {submitting ? "提交中..." : "提交分数"}
                     </Button>
                 </div>
             </Card>
@@ -223,28 +235,34 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
                         description="最近提交的分数记录"
                     />
 
-                    <DataGrid
-                        items={scores}
-                        columns={columns}
-                        getRowId={(item) => item.id}
-                    >
-                        <DataGridHeader>
-                            <DataGridRow>
-                                {({ renderHeaderCell }) => (
-                                    <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                                )}
-                            </DataGridRow>
-                        </DataGridHeader>
-                        <DataGridBody<ScoreEntry>>
-                            {({ item, rowId }) => (
-                                <DataGridRow<ScoreEntry> key={rowId}>
-                                    {({ renderCell }) => (
-                                        <DataGridCell>{renderCell(item)}</DataGridCell>
+                    {loadingScores ? (
+                        <div style={{ display: "flex", justifyContent: "center", padding: "20px" }}>
+                            <Spinner label="加载分数历史中..." />
+                        </div>
+                    ) : (
+                        <DataGrid
+                            items={scores}
+                            columns={columns}
+                            getRowId={(item) => item.id}
+                        >
+                            <DataGridHeader>
+                                <DataGridRow>
+                                    {({ renderHeaderCell }) => (
+                                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
                                     )}
                                 </DataGridRow>
-                            )}
-                        </DataGridBody>
-                    </DataGrid>
+                            </DataGridHeader>
+                            <DataGridBody<any>>
+                                {({ item, rowId }) => (
+                                    <DataGridRow<any> key={rowId}>
+                                        {({ renderCell }) => (
+                                            <DataGridCell>{renderCell(item)}</DataGridCell>
+                                        )}
+                                    </DataGridRow>
+                                )}
+                            </DataGridBody>
+                        </DataGrid>
+                    )}
                 </Card>
             </div>
         </div>
