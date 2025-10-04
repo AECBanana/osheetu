@@ -1,4 +1,4 @@
-import { getSession as nextAuthGetSession, signIn, signOut } from 'next-auth/react';
+import { getSession as nextAuthGetSession, signOut } from 'next-auth/react';
 
 // 服务器端完整用户类型
 export interface ServerUser {

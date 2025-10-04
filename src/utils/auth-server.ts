@@ -1,7 +1,7 @@
-import { getServerSession } from 'next-auth';
 import { query } from './db';
 import axios from 'axios';
 import type { ServerUser } from './auth';
+import { getServerSession } from 'next-auth/next';
 
 // 获取服务器端会话
 export const getServerSessionData = async () => {
