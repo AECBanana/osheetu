@@ -38,6 +38,73 @@ export const query = async (sql: string, params?: any[]) => {
 };
 
 // 数据库初始化函数
+export const ensureMapPoolColumns = async () => {
+  const columnsToCheck: Array<{
+    name: string;
+    alter: string;
+  }> = [
+    {
+      name: "beatmapset_id",
+      alter: "ALTER TABLE map_pools ADD COLUMN beatmapset_id BIGINT UNSIGNED",
+    },
+    {
+      name: "cover_url",
+      alter: "ALTER TABLE map_pools ADD COLUMN cover_url VARCHAR(512)",
+    },
+    {
+      name: "ar",
+      alter: "ALTER TABLE map_pools ADD COLUMN ar DECIMAL(4,2) DEFAULT NULL",
+    },
+    {
+      name: "cs",
+      alter: "ALTER TABLE map_pools ADD COLUMN cs DECIMAL(4,2) DEFAULT NULL",
+    },
+    {
+      name: "od",
+      alter: "ALTER TABLE map_pools ADD COLUMN od DECIMAL(4,2) DEFAULT NULL",
+    },
+    {
+      name: "hp",
+      alter: "ALTER TABLE map_pools ADD COLUMN hp DECIMAL(4,2) DEFAULT NULL",
+    },
+    {
+      name: "beatmap_id",
+      alter: "ALTER TABLE map_pools MODIFY COLUMN beatmap_id BIGINT UNSIGNED NOT NULL",
+    },
+    {
+      name: "length",
+      alter: "ALTER TABLE map_pools MODIFY COLUMN length VARCHAR(16) NOT NULL",
+    },
+    {
+      name: "mod_value",
+      alter: "ALTER TABLE map_pools MODIFY COLUMN mod_value VARCHAR(20) NOT NULL",
+    },
+    {
+      name: "stars",
+      alter: "ALTER TABLE map_pools MODIFY COLUMN stars DECIMAL(4,2) NOT NULL",
+    },
+  ];
+
+  for (const column of columnsToCheck) {
+    try {
+      const result = (await query(
+        `SHOW COLUMNS FROM map_pools LIKE ?`,
+        [column.name]
+      )) as RowDataPacket[];
+
+      if (result.length === 0) {
+        try {
+          await query(column.alter);
+        } catch (error) {
+          console.warn(`尝试添加/修改 map_pools 列 ${column.name} 失败（可能已存在或缺少权限）:`, error);
+        }
+      }
+    } catch (error) {
+      console.warn(`检查 map_pools 列 ${column.name} 状态失败:`, error);
+    }
+  }
+};
+
 export const initDatabase = async () => {
   try {
     // 创建用户表
@@ -105,16 +172,22 @@ export const initDatabase = async () => {
     await query(`
       CREATE TABLE IF NOT EXISTS map_pools (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        tournament_id INT,
-        beatmap_id INT NOT NULL,
+        tournament_id INT NOT NULL,
+        beatmapset_id BIGINT UNSIGNED,
+        beatmap_id BIGINT UNSIGNED NOT NULL,
+        cover_url VARCHAR(512),
         title VARCHAR(255) NOT NULL,
         artist VARCHAR(255) NOT NULL,
         mapper VARCHAR(255) NOT NULL,
-        difficulty VARCHAR(50) NOT NULL,
-        mod_value VARCHAR(10) NOT NULL,
+        difficulty VARCHAR(100) NOT NULL,
+        mod_value VARCHAR(20) NOT NULL,
         stars DECIMAL(4,2) NOT NULL,
+        ar DECIMAL(4,2) DEFAULT NULL,
+        cs DECIMAL(4,2) DEFAULT NULL,
+        od DECIMAL(4,2) DEFAULT NULL,
+        hp DECIMAL(4,2) DEFAULT NULL,
         bpm INT NOT NULL,
-        length VARCHAR(10) NOT NULL,
+        length VARCHAR(16) NOT NULL,
         tags TEXT,
         added_by INT,
         added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -159,6 +232,8 @@ export const initDatabase = async () => {
     } catch (error) {
       console.warn('扩展比赛配置字段失败（可能已存在）:', error);
     }
+
+    await ensureMapPoolColumns();
 
     console.log('数据库表创建成功');
   } catch (error) {
