@@ -75,10 +75,28 @@ export const initDatabase = async () => {
         stages TEXT NOT NULL,
         current_stage VARCHAR(50) NOT NULL,
         status ENUM('active', 'completed', 'upcoming') NOT NULL,
+        include_qualifier BOOLEAN DEFAULT FALSE,
+        allow_custom_mods BOOLEAN DEFAULT FALSE,
+        settings JSON NULL,
         created_by INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (created_by) REFERENCES users(id)
+      )
+    `);
+
+    // 创建比赛参与者表
+    await query(`
+      CREATE TABLE IF NOT EXISTS tournament_participants (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        tournament_id INT NOT NULL,
+        user_id INT NOT NULL,
+        role ENUM('player', 'captain', 'referee', 'staff') DEFAULT 'player',
+        status ENUM('active', 'pending', 'banned') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_participant (tournament_id, user_id),
+        FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
@@ -128,6 +146,17 @@ export const initDatabase = async () => {
       `);
     } catch (error) {
       console.warn('调整用户令牌字段长度失败（可能已是最新结构）:', error);
+    }
+
+    try {
+      await query(`
+        ALTER TABLE tournaments
+          ADD COLUMN include_qualifier BOOLEAN DEFAULT FALSE,
+          ADD COLUMN allow_custom_mods BOOLEAN DEFAULT FALSE,
+          ADD COLUMN settings JSON NULL
+      `);
+    } catch (error) {
+      console.warn('扩展比赛配置字段失败（可能已存在）:', error);
     }
 
     console.log('数据库表创建成功');

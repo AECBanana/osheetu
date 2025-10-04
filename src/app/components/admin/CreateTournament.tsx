@@ -16,8 +16,11 @@ import {
     Body1,
     Divider,
     MessageBar,
+    MessageBarBody,
+    MessageBarTitle,
     makeStyles,
 } from "@fluentui/react-components";
+import { type TournamentSummary } from "./ManageTournament";
 
 const useStyles = makeStyles({
     formGrid: {
@@ -42,7 +45,7 @@ const useStyles = makeStyles({
 
 interface CreateTournamentProps {
     onCancel: () => void;
-    onSuccess: (tournament: any) => void;
+    onSuccess: (tournament: TournamentSummary) => void;
 }
 
 export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps) {
@@ -55,7 +58,8 @@ export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps)
         includeQualifier: false,
         customMods: false,
     });
-    const [showMessage, setShowMessage] = useState("");
+    const [message, setMessage] = useState<{ intent: "success" | "error"; text: string } | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const availableStages = ["qua", "ro32", "ro16", "sf", "f", "gf"];
     const defaultMods = ["nm", "hd", "hr", "dt", "fm", "tb"];
@@ -76,30 +80,57 @@ export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps)
         }
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!formData.name.trim()) {
-            setShowMessage("请输入比赛名称");
+            setMessage({ intent: "error", text: "请输入比赛名称" });
             return;
         }
 
         if (formData.stages.length === 0) {
-            setShowMessage("请至少选择一个比赛阶段");
+            setMessage({ intent: "error", text: "请至少选择一个比赛阶段" });
             return;
         }
 
-        // 创建新比赛
-        const newTournament = {
-            id: `t${Date.now()}`,
-            name: formData.name,
-            mode: formData.mode,
-            type: formData.type,
-            stages: formData.stages,
-            status: "upcoming",
-            created_at: new Date().toISOString().split('T')[0],
-            participants: 0,
-        };
+        setIsSubmitting(true);
+        setMessage(null);
 
-        onSuccess(newTournament);
+        try {
+            const response = await fetch("/api/admin/tournaments", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    name: formData.name.trim(),
+                    mode: formData.mode,
+                    type: formData.type,
+                    stages: formData.stages,
+                    includeQualifier: formData.includeQualifier,
+                    allowCustomMods: formData.customMods,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || "创建比赛失败，请稍后重试");
+            }
+
+            onSuccess(data.tournament);
+            setMessage({ intent: "success", text: "比赛创建成功" });
+            setFormData({
+                name: "",
+                mode: "osu",
+                type: "team",
+                stages: [],
+                includeQualifier: false,
+                customMods: false,
+            });
+        } catch (error: any) {
+            setMessage({ intent: "error", text: error.message || "创建比赛失败" });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -110,9 +141,14 @@ export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps)
                     description="配置比赛基本信息和规则"
                 />
 
-                {showMessage && (
-                    <MessageBar intent="error" style={{ marginBottom: "16px" }}>
-                        {showMessage}
+                {message && (
+                    <MessageBar intent={message.intent} style={{ marginBottom: "16px" }}>
+                        <MessageBarBody>
+                            <MessageBarTitle>
+                                {message.intent === "success" ? "创建成功" : "提示"}
+                            </MessageBarTitle>
+                            {message.text}
+                        </MessageBarBody>
                     </MessageBar>
                 )}
 
@@ -220,10 +256,10 @@ export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps)
 
             {/* 操作按钮 */}
             <div className={styles.actionButtons}>
-                <Button appearance="primary" onClick={handleSubmit}>
-                    创建比赛
+                <Button appearance="primary" onClick={handleSubmit} disabled={isSubmitting}>
+                    {isSubmitting ? "创建中..." : "创建比赛"}
                 </Button>
-                <Button appearance="secondary" onClick={onCancel}>
+                <Button appearance="secondary" onClick={onCancel} disabled={isSubmitting}>
                     取消
                 </Button>
             </div>
