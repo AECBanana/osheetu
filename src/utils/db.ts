@@ -92,7 +92,7 @@ export const initDatabase = async () => {
         artist VARCHAR(255) NOT NULL,
         mapper VARCHAR(255) NOT NULL,
         difficulty VARCHAR(50) NOT NULL,
-        mod VARCHAR(10) NOT NULL,
+        mod_value VARCHAR(10) NOT NULL,
         stars DECIMAL(4,2) NOT NULL,
         bpm INT NOT NULL,
         length VARCHAR(10) NOT NULL,
