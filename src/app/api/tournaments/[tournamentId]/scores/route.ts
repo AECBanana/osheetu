@@ -22,7 +22,7 @@ export async function GET(
                 s.timestamp,
                 u.username as player,
                 mp.title as mapTitle,
-                mp.mod_value as mod
+                mp.mod_value as mods
             FROM scores s
             JOIN users u ON s.user_id = u.id
             JOIN map_pools mp ON s.map_pool_id = mp.id
