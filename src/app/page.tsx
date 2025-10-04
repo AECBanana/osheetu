@@ -47,6 +47,7 @@ export default function Home() {
     // 使用NextAuth获取用户会话信息
     const fetchUserSession = async () => {
       try {
+        setLoading(true);
         const session = await getSession();
         if (session?.user) {
           // 确保返回的是符合客户端User接口的对象
@@ -59,15 +60,32 @@ export default function Home() {
             is_admin: is_admin as boolean,
             groups: groups as string[] | undefined
           });
+        } else {
+          // 确保用户状态被正确重置
+          setUser(null);
         }
       } catch (error) {
         console.error('获取用户会话失败:', error);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
+    // 初始加载时获取一次
     fetchUserSession();
+    
+    // 监听页面加载完成事件，确保在登录重定向后重新获取会话
+    const handleLoad = () => {
+      fetchUserSession();
+    };
+    
+    window.addEventListener('load', handleLoad);
+    
+    // 清理事件监听
+    return () => {
+      window.removeEventListener('load', handleLoad);
+    };
   }, []);
 
   const handleLogin = (userData: User) => {
