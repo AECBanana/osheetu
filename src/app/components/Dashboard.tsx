@@ -45,15 +45,51 @@ const useStyles = makeStyles({
     },
 });
 
+type TournamentMode = 'osu' | 'taiko' | 'mania' | 'catch';
+type TournamentType = 'team' | 'player';
+type TournamentStatus = 'active' | 'completed' | 'upcoming';
+type ParticipantRole = 'player' | 'captain' | 'referee' | 'staff';
+type ParticipantStatus = 'active' | 'pending' | 'banned';
+
+interface TournamentParticipantInfo {
+    role: ParticipantRole;
+    status: ParticipantStatus;
+    joined_at: string;
+}
+
 interface Tournament {
     id: string;
     name: string;
-    mode: 'osu' | 'taiko' | 'mania' | 'catch';
-    type: 'team' | 'player';
+    mode: TournamentMode;
+    type: TournamentType;
     stages: string[];
     current_stage: string;
-    status: 'active' | 'completed' | 'upcoming';
+    status: TournamentStatus;
+    include_qualifier: boolean;
+    allow_custom_mods: boolean;
+    participant: TournamentParticipantInfo;
+    can_manage_map_pool: boolean;
 }
+
+const ensureTournamentMode = (value: any): TournamentMode => {
+    return value === "osu" || value === "taiko" || value === "mania" || value === "catch" ? value : "osu";
+};
+
+const ensureTournamentType = (value: any): TournamentType => {
+    return value === "team" || value === "player" ? value : "team";
+};
+
+const ensureTournamentStatus = (value: any): TournamentStatus => {
+    return value === "active" || value === "completed" || value === "upcoming" ? value : "active";
+};
+
+const ensureParticipantRole = (value: any): ParticipantRole => {
+    return value === "captain" || value === "referee" || value === "staff" ? value : "player";
+};
+
+const ensureParticipantStatus = (value: any): ParticipantStatus => {
+    return value === "pending" || value === "banned" ? value : "active";
+};
 
 interface DashboardProps {
     user: any; // 保持兼容性，但内部会使用useSession
@@ -65,52 +101,106 @@ export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
     const [tournamentLoading, setTournamentLoading] = useState(true);
+    const [tournamentError, setTournamentError] = useState<string | null>(null);
     
     // 使用自定义会话钩子获取用户信息
     const { user: sessionUser, loading, error, refreshSession } = useUserSession();
     const user = sessionUser || propUser; // 优先使用session中的用户信息
 
     useEffect(() => {
-        // 获取用户参与的比赛
-        const fetchTournaments = async () => {
+        if (!user) {
+            setTournaments([]);
+            setSelectedTournament(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        const fetchAuthorizedTournaments = async () => {
+            setTournamentLoading(true);
+            setTournamentError(null);
             try {
-                setTournamentLoading(true);
-                // 在实际应用中，这里会从API获取数据
-                // 这里使用模拟数据
-                const mockTournaments: Tournament[] = [
-                    {
-                        id: "t1",
-                        name: "OSU! World Cup 2025",
-                        mode: "osu",
-                        type: "team",
-                        stages: ["qua", "ro32", "ro16", "sf", "f", "gf"],
-                        current_stage: "ro16",
-                        status: "active",
-                    },
-                    {
-                        id: "t2",
-                        name: "Taiko Championship",
-                        mode: "taiko",
-                        type: "player",
-                        stages: ["ro32", "ro16", "sf", "f"],
-                        current_stage: "sf",
-                        status: "active",
-                    },
-                ];
-                setTournaments(mockTournaments);
-                if (mockTournaments.length > 0) {
-                    setSelectedTournament(mockTournaments[0]);
+                const response = await fetch("/api/tournaments/my", { cache: "no-store" });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "获取比赛数据失败");
                 }
-            } catch (error) {
-                console.error('获取比赛数据失败:', error);
+
+                const normalized = (Array.isArray(data.tournaments) ? data.tournaments : []).reduce(
+                    (acc: Tournament[], rawItem: any) => {
+                        const numericId = Number(rawItem?.id);
+                        if (!Number.isFinite(numericId) || numericId <= 0) {
+                            return acc;
+                        }
+
+                        const rawStages = Array.isArray(rawItem?.stages) ? rawItem.stages : [];
+                        const stages = rawStages
+                            .filter((stage: any) => typeof stage === "string" && stage.trim().length > 0)
+                            .map((stage: string) => stage.trim());
+
+                        const participant = rawItem?.participant ?? {};
+
+                        const tournament: Tournament = {
+                            id: String(numericId),
+                            name: String(rawItem?.name ?? "未命名比赛"),
+                            mode: ensureTournamentMode(rawItem?.mode),
+                            type: ensureTournamentType(rawItem?.type),
+                            stages,
+                            current_stage: String(rawItem?.current_stage ?? (stages[0] ?? "")),
+                            status: ensureTournamentStatus(rawItem?.status),
+                            include_qualifier: Boolean(rawItem?.include_qualifier),
+                            allow_custom_mods: Boolean(rawItem?.allow_custom_mods),
+                            participant: {
+                                role: ensureParticipantRole(participant?.role),
+                                status: ensureParticipantStatus(participant?.status),
+                                joined_at: String(participant?.joined_at ?? new Date().toISOString()),
+                            },
+                            can_manage_map_pool: Boolean(rawItem?.can_manage_map_pool),
+                        };
+
+                        acc.push(tournament);
+                        return acc;
+                    },
+                    [] as Tournament[]
+                );
+
+                if (cancelled) {
+                    return;
+                }
+
+                setTournaments(normalized);
+                setSelectedTournament((prev) => {
+                    if (normalized.length === 0) {
+                        return null;
+                    }
+                    if (prev) {
+                        const matched = normalized.find((t: Tournament) => t.id === prev.id);
+                        if (matched) {
+                            return matched;
+                        }
+                    }
+                    return normalized[0];
+                });
+            } catch (error: any) {
+                if (!cancelled) {
+                    console.error("获取比赛数据失败:", error);
+                    setTournamentError(error.message || "获取比赛数据失败");
+                    setTournaments([]);
+                    setSelectedTournament(null);
+                }
             } finally {
-                setTournamentLoading(false);
+                if (!cancelled) {
+                    setTournamentLoading(false);
+                }
             }
         };
 
-        if (user) {
-            fetchTournaments();
-        }
+        void fetchAuthorizedTournaments();
+
+        return () => {
+            cancelled = true;
+        };
     }, [user]);
 
     // 处理用户会话加载状态
