@@ -111,10 +111,23 @@ const fetchAuthorizedTournaments = async (): Promise<AuthorizedTournament[]> => 
     cache: 'no-store',
     credentials: 'include',
   });
-  const data = await response.json();
+  const rawText = await response.text();
+
+  let data: unknown = {};
+  if (rawText.trim().length > 0) {
+    try {
+      data = JSON.parse(rawText);
+    } catch (error) {
+      throw new Error('获取比赛数据失败：返回数据格式无效');
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data?.error || '获取比赛数据失败');
+    const errorMessage =
+      typeof data === 'object' && data !== null && 'error' in data
+        ? String((data as { error?: unknown }).error)
+        : undefined;
+    throw new Error(errorMessage || '获取比赛数据失败');
   }
 
   return normalizeTournamentsPayload(data);

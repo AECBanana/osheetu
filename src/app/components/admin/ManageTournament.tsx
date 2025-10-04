@@ -19,13 +19,12 @@ import {
     DialogContent,
     DialogSurface,
     DialogTitle,
-    Dropdown,
     Field,
     Input,
     MessageBar,
     MessageBarBody,
     MessageBarTitle,
-    Option,
+    Select,
     Spinner,
     Switch,
     TableColumnDefinition,
@@ -34,6 +33,7 @@ import {
     Title3,
     createTableColumn,
     makeStyles,
+    useId,
 } from "@fluentui/react-components";
 import { Delete24Regular } from "@fluentui/react-icons";
 
@@ -138,7 +138,7 @@ const useStyles = makeStyles({
         display: "flex",
         gap: "12px",
         flexWrap: "wrap",
-        alignItems: "center",
+        alignItems: "flex-end",
         marginBottom: "16px",
     },
     userList: {
@@ -246,13 +246,11 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
     const [saving, setSaving] = useState(false);
     const [participantBusy, setParticipantBusy] = useState(false);
     const [deleting, setDeleting] = useState(false);
-    const [participantForm, setParticipantForm] = useState<{ user: SelectableUser | null; role: ParticipantRole; status: ParticipantStatus }>(
-        {
-            user: null,
-            role: "player",
-            status: "active",
-        }
-    );
+    const [participantForm, setParticipantForm] = useState<{ user: SelectableUser | null; role: ParticipantRole; status: ParticipantStatus }>(() => ({
+        user: null,
+        role: "player",
+        status: "active",
+    }));
     const [userPickerOpen, setUserPickerOpen] = useState(false);
     const [availableUsers, setAvailableUsers] = useState<SelectableUser[]>([]);
     const [usersLoading, setUsersLoading] = useState(false);
@@ -262,6 +260,11 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
     const [manualLoading, setManualLoading] = useState(false);
     const [manualError, setManualError] = useState<string | null>(null);
     const [manualResult, setManualResult] = useState<SelectableUser | null>(null);
+
+    const stageSelectId = useId("stage-select-");
+    const statusSelectId = useId("status-select-");
+    const roleSelectId = useId("role-select-");
+    const participantStatusSelectId = useId("participant-status-select-");
 
     const emitSummaryUpdate = useCallback((detailData: TournamentDetail, participantCount: number) => {
         onUpdated({
@@ -450,9 +453,21 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                 params.set("q", searchTerm.trim());
             }
             const response = await fetch(`/api/admin/users?${params.toString()}`);
-            const data = await response.json();
+            const rawText = await response.text();
+            let data: any = {};
+            if (rawText.trim().length > 0) {
+                try {
+                    data = JSON.parse(rawText);
+                } catch (error) {
+                    throw new Error("获取用户列表失败：返回数据格式无效");
+                }
+            }
             if (!response.ok) {
-                throw new Error(data.error || "获取用户列表失败");
+                const errorMessage =
+                    data && typeof data === "object" && "error" in data
+                        ? String((data as { error?: unknown }).error ?? "")
+                        : "";
+                throw new Error(errorMessage || "获取用户列表失败");
             }
             const normalized: SelectableUser[] = Array.isArray(data.users)
                 ? data.users.map((user: any) => {
@@ -527,9 +542,21 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
 
         try {
             const response = await fetch(`/api/admin/users?osuId=${encodeURIComponent(trimmed)}`);
-            const data = await response.json();
+            const rawText = await response.text();
+            let data: any = {};
+            if (rawText.trim().length > 0) {
+                try {
+                    data = JSON.parse(rawText);
+                } catch (error) {
+                    throw new Error("解析 osu! UID 失败：返回数据格式无效");
+                }
+            }
             if (!response.ok) {
-                throw new Error(data.error || "未找到对应的用户");
+                const errorMessage =
+                    data && typeof data === "object" && "error" in data
+                        ? String((data as { error?: unknown }).error ?? "")
+                        : "";
+                throw new Error(errorMessage || "未找到对应的用户");
             }
 
             const rawUser = data.user;
@@ -686,55 +713,55 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             <Field label="比赛类型">
                                 <Text>{detail?.type === "team" ? "团队赛" : "个人赛"}</Text>
                             </Field>
-                            <Field label="当前阶段">
-                                <Dropdown
-                                    selectedOptions={[formState.currentStage]}
-                                    onOptionSelect={(_, data) => {
-                                        const optionValue = data.optionValue as string | undefined;
-                                        if (!optionValue) {
-                                            return;
-                                        }
+                            <Field label={{ children: "当前阶段", htmlFor: stageSelectId }}>
+                                <Select
+                                    id={stageSelectId}
+                                    value={formState.currentStage || ""}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
                                         setFormState((prev) =>
                                             prev
                                                 ? {
                                                       ...prev,
-                                                      currentStage: optionValue,
+                                                      currentStage: value,
                                                   }
                                                 : prev
                                         );
                                     }}
-                                    disabled={saving || deleting || detail?.stages.length === 0}
+                                    disabled={saving || deleting || (detail?.stages.length ?? 0) === 0}
                                 >
-                                    {detail?.stages.map((stage) => (
-                                        <Option key={stage} value={stage}>
-                                            {stage.toUpperCase()}
-                                        </Option>
-                                    ))}
-                                </Dropdown>
+                                    {(detail?.stages ?? []).length === 0 ? (
+                                        <option value="">暂无阶段</option>
+                                    ) : (
+                                        detail!.stages.map((stage) => (
+                                            <option key={stage} value={stage}>
+                                                {stage.toUpperCase()}
+                                            </option>
+                                        ))
+                                    )}
+                                </Select>
                             </Field>
-                            <Field label="比赛状态">
-                                <Dropdown
-                                    selectedOptions={[formState.status]}
-                                    onOptionSelect={(_, data) => {
-                                        const optionValue = data.optionValue as TournamentStatus | undefined;
-                                        if (!optionValue) {
-                                            return;
-                                        }
+                            <Field label={{ children: "比赛状态", htmlFor: statusSelectId }}>
+                                <Select
+                                    id={statusSelectId}
+                                    value={formState.status}
+                                    onChange={(event) => {
+                                        const value = event.target.value as TournamentStatus;
                                         setFormState((prev) =>
                                             prev
                                                 ? {
                                                       ...prev,
-                                                      status: optionValue,
+                                                      status: value,
                                                   }
                                                 : prev
                                         );
                                     }}
                                     disabled={saving || deleting}
                                 >
-                                    <Option value="upcoming">即将开始</Option>
-                                    <Option value="active">进行中</Option>
-                                    <Option value="completed">已完成</Option>
-                                </Dropdown>
+                                    <option value="upcoming">即将开始</option>
+                                    <option value="active">进行中</option>
+                                    <option value="completed">已完成</option>
+                                </Select>
                             </Field>
                         </div>
 
@@ -875,46 +902,42 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                             )}
                         </div>
                     </Field>
-                    <Field label="角色" className={styles.formField}>
-                        <Dropdown
-                            selectedOptions={[participantForm.role]}
-                            onOptionSelect={(_, data) => {
-                                const optionValue = data.optionValue as ParticipantRole | undefined;
-                                if (!optionValue) {
-                                    return;
-                                }
+                    <Field label={{ children: "角色", htmlFor: roleSelectId }} className={styles.formField}>
+                        <Select
+                            id={roleSelectId}
+                            value={participantForm.role}
+                            onChange={(event) => {
+                                const value = event.target.value as ParticipantRole;
                                 setParticipantForm((prev) => ({
                                     ...prev,
-                                    role: optionValue,
+                                    role: value,
                                 }));
                             }}
                             disabled={participantBusy || deleting}
                         >
-                            <Option value="player">选手</Option>
-                            <Option value="captain">队长</Option>
-                            <Option value="referee">裁判</Option>
-                            <Option value="staff">工作人员</Option>
-                        </Dropdown>
+                            <option value="player">选手</option>
+                            <option value="captain">队长</option>
+                            <option value="referee">裁判</option>
+                            <option value="staff">工作人员</option>
+                        </Select>
                     </Field>
-                    <Field label="状态" className={styles.formField}>
-                        <Dropdown
-                            selectedOptions={[participantForm.status]}
-                            onOptionSelect={(_, data) => {
-                                const optionValue = data.optionValue as ParticipantStatus | undefined;
-                                if (!optionValue) {
-                                    return;
-                                }
+                    <Field label={{ children: "状态", htmlFor: participantStatusSelectId }} className={styles.formField}>
+                        <Select
+                            id={participantStatusSelectId}
+                            value={participantForm.status}
+                            onChange={(event) => {
+                                const value = event.target.value as ParticipantStatus;
                                 setParticipantForm((prev) => ({
                                     ...prev,
-                                    status: optionValue,
+                                    status: value,
                                 }));
                             }}
                             disabled={participantBusy || deleting}
                         >
-                            <Option value="active">生效</Option>
-                            <Option value="pending">待确认</Option>
-                            <Option value="banned">禁赛</Option>
-                        </Dropdown>
+                            <option value="active">生效</option>
+                            <option value="pending">待确认</option>
+                            <option value="banned">禁赛</option>
+                        </Select>
                     </Field>
                     <div className={styles.actionWrapper}>
                         <Button
