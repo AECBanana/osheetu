@@ -1,9 +1,9 @@
-import NextAuth, { type NextAuthOptions, type Session } from 'next-auth';
 import { type JWT } from 'next-auth/jwt';
 import { type User } from '../../../../utils/auth';
 import CredentialsProvider, { CredentialsConfig } from 'next-auth/providers/credentials';
 import axios from 'axios';
 import { saveOrUpdateUser, fetchOsuUserInfo } from '../../../../utils/auth-server';
+import NextAuth, { type NextAuthOptions, type Session } from 'next-auth';
 
 // 创建自定义OSU提供者
 const OsuProvider = CredentialsProvider({
@@ -107,9 +107,9 @@ const isProduction = process.env.NODE_ENV === 'production';
 // 为Vercel环境提供智能配置
 export const authOptions: NextAuthOptions = {
   providers: [OsuProvider],
-  // 在Vercel环境中，NEXTAUTH_SECRET是必需的
+  // 在生产环境中，NEXTAUTH_SECRET是必需的
   // 在开发环境中，如果没有设置，NextAuth会自动生成一个临时密钥
-  secret: isProduction ? process.env.NEXTAUTH_SECRET : process.env.NEXTAUTH_SECRET || undefined,
+  secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt' as const,
   },
