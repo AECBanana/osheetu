@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
     Badge,
     Button,
@@ -21,16 +21,24 @@ import {
     Field,
     Input,
     MessageBar,
+    Popover,
+    PopoverSurface,
+    PopoverTrigger,
+    ProgressBar,
     Spinner,
     TableColumnDefinition,
     Text,
     Title3,
+    Tooltip,
     createTableColumn,
     makeStyles,
 } from "@fluentui/react-components";
-import { AddRegular, ArrowDownloadRegular, Delete24Regular } from "@fluentui/react-icons";
+import { AddRegular, ArrowDownloadRegular, CopyRegular, Delete24Regular } from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
+        root: {
+            minWidth: "1200px",
+        },
         container: {
             display: "flex",
             flexDirection: "column",
@@ -42,21 +50,134 @@ const useStyles = makeStyles({
             gap: "8px",
             padding: "0 16px",
         },
+        headerActions: {
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "0 16px",
+        },
         managementNotice: {
             margin: "0 16px",
         },
         messageBar: {
             margin: "0 16px",
         },
+        downloadContainer: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            backgroundColor: "var(--colorNeutralBackground2)",
+            border: "1px solid var(--colorNeutralStroke2)",
+            borderRadius: "12px",
+            padding: "16px",
+        },
+        downloadHeader: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+        },
+        downloadToolbar: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+        },
+        downloadCount: {
+            color: "var(--colorNeutralForeground3)",
+        },
+        downloadActionGroup: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        },
+        downloadList: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+            maxHeight: "360px",
+            overflowY: "auto",
+            paddingRight: "4px",
+        },
+        downloadItem: {
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            padding: "12px",
+            borderRadius: "10px",
+            backgroundColor: "var(--colorNeutralBackground1)",
+            border: "1px solid var(--colorNeutralStroke2)",
+            boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+        },
+        downloadItemHeader: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+        },
+        downloadMeta: {
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: "8px",
+        },
+        downloadActions: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        },
+        downloadProgressRow: {
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+        },
+        downloadProgress: {
+            flexGrow: 1,
+        },
+        downloadStatus: {
+            fontSize: "12px",
+            color: "var(--colorNeutralForeground3)",
+        },
+        downloadError: {
+            color: "var(--colorPaletteRedForeground1)",
+        },
+        downloadSuccess: {
+            color: "var(--colorPaletteGreenForeground1)",
+        },
+        downloadControls: {
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+        },
+        downloadFooter: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+        },
+        downloadMinimized: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        },
+        downloadMinimizedLabel: {
+            fontWeight: 600,
+        },
         mapInfo: {
             display: "flex",
             flexDirection: "column",
             gap: "4px",
+            width: "100%",
+            overflow: "hidden",
+            justifyContent: "center",
         },
         tagList: {
             display: "flex",
-            flexWrap: "wrap",
+            flexWrap: "nowrap",
             gap: "4px",
+            alignItems: "center",
+            maxHeight: "40px",
+            overflow: "hidden",
         },
         coverWrapper: {
             width: "64px",
@@ -91,6 +212,49 @@ const useStyles = makeStyles({
         },
         fullWidthField: {
             gridColumn: "1 / -1",
+        },
+        bidCell: {
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+        },
+        mapInfoColumn: {
+            minWidth: "280px",
+            height: "40px",
+            display: "flex",
+            alignItems: "center",
+            overflow: "hidden",
+        },
+        tagPopover: {
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "4px",
+            maxWidth: "240px",
+        },
+        addMapButton: {
+            minWidth: "136px",
+        },
+        dataRow: {
+            height: "40px",
+        },
+        compactCell: {
+            display: "flex",
+            alignItems: "center",
+            height: "40px",
+            padding: "0 12px",
+        },
+        headerCell: {
+            display: "flex",
+            alignItems: "center",
+            height: "40px",
+            padding: "0 12px",
+        },
+        ellipsis: {
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            display: "block",
+            width: "100%",
         },
     });
 
@@ -156,6 +320,48 @@ const useStyles = makeStyles({
         });
     };
 
+    const sanitizeFilename = (value: string) => {
+        const sanitized = value
+            .replace(/[^a-zA-Z0-9\u4e00-\u9fa5\-_.\s\[\]\(\)]/g, "_")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 140);
+        return sanitized.length > 0 ? sanitized : "beatmap.osz";
+    };
+
+    const formatBytes = (value?: number | null) => {
+        if (!value || value <= 0 || Number.isNaN(value)) {
+            return "未知";
+        }
+        if (value < 1024) {
+            return `${value.toFixed(0)} B`;
+        }
+        const units = ["KB", "MB", "GB", "TB"] as const;
+        let size = value;
+        let unitIndex = -1;
+        while (size >= 1024 && unitIndex < units.length - 1) {
+            size /= 1024;
+            unitIndex += 1;
+        }
+        return `${size.toFixed(size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
+    };
+
+    type DownloadStatus = "pending" | "downloading" | "success" | "error" | "cancelled";
+
+    interface DownloadItemState {
+        mapId: number;
+        beatmapsetId: number | null;
+        title: string;
+        difficulty: string;
+        modValue: string;
+        status: DownloadStatus;
+        progress: number;
+        receivedBytes: number;
+        totalBytes: number | null;
+        error?: string;
+        filename: string;
+    }
+
     export function MapPool({ tournament, user }: MapPoolProps) {
         const styles = useStyles();
         const [maps, setMaps] = useState<MapEntry[]>([]);
@@ -170,6 +376,414 @@ const useStyles = makeStyles({
         const [parseInputValue, setParseInputValue] = useState("");
         const [parseError, setParseError] = useState<string | null>(null);
         const [parsing, setParsing] = useState(false);
+        const [downloadQueue, setDownloadQueue] = useState<DownloadItemState[]>([]);
+        const downloadQueueRef = useRef<DownloadItemState[]>([]);
+        const downloadBlobsRef = useRef(new Map<number, Blob>());
+        const [downloadManagerVisible, setDownloadManagerVisible] = useState(false);
+        const [downloadManagerMinimized, setDownloadManagerMinimized] = useState(false);
+        const [isDownloadRunning, setIsDownloadRunning] = useState(false);
+        const downloadAbortControllerRef = useRef<AbortController | null>(null);
+        const currentBatchIdRef = useRef<number | null>(null);
+        const zipObjectUrlRef = useRef<string | null>(null);
+        const [zipDownloadUrl, setZipDownloadUrl] = useState<string | null>(null);
+        const [zipDownloadName, setZipDownloadName] = useState<string | null>(null);
+        const zipGeneratingRef = useRef(false);
+
+    const tournamentId = tournament?.id;
+
+        const setDownloadQueueSafe = useCallback((updater: (prev: DownloadItemState[]) => DownloadItemState[]) => {
+            setDownloadQueue((prev) => {
+                const next = updater(prev);
+                downloadQueueRef.current = next;
+                return next;
+            });
+        }, []);
+
+        useEffect(() => {
+            downloadQueueRef.current = downloadQueue;
+        }, [downloadQueue]);
+
+        const cleanupZipUrl = useCallback(() => {
+            if (zipObjectUrlRef.current) {
+                URL.revokeObjectURL(zipObjectUrlRef.current);
+                zipObjectUrlRef.current = null;
+            }
+            setZipDownloadUrl(null);
+            setZipDownloadName(null);
+        }, []);
+
+        const updateDownloadItem = useCallback(
+            (mapId: number, updater: (item: DownloadItemState) => DownloadItemState) => {
+                setDownloadQueueSafe((prev) =>
+                    prev.map((item) => (item.mapId === mapId ? updater(item) : item))
+                );
+            },
+            [setDownloadQueueSafe]
+        );
+
+        const assembleZip = useCallback(
+            async (batchId: number) => {
+                if (!tournamentId) {
+                    return;
+                }
+                const currentBatchId = currentBatchIdRef.current;
+                if (!currentBatchId || currentBatchId !== batchId) {
+                    return;
+                }
+                if (zipGeneratingRef.current) {
+                    return;
+                }
+
+                const successfulItems = downloadQueueRef.current.filter((item) => item.status === "success");
+                if (successfulItems.length === 0) {
+                    cleanupZipUrl();
+                    return;
+                }
+
+                zipGeneratingRef.current = true;
+
+                try {
+                    cleanupZipUrl();
+                    const { default: JSZip } = await import("jszip");
+                    const zip = new JSZip();
+
+                    for (const item of successfulItems) {
+                        const blob = downloadBlobsRef.current.get(item.mapId);
+                        if (!blob) {
+                            continue;
+                        }
+                        const arrayBuffer = await blob.arrayBuffer();
+                        zip.file(item.filename, arrayBuffer);
+                    }
+
+                    const manifest = {
+                        generatedAt: new Date().toISOString(),
+                        tournamentId,
+                        total: successfulItems.length,
+                        failures: downloadQueueRef.current
+                            .filter((item) => item.status === "error" || item.status === "cancelled")
+                            .map((item) => ({
+                                mapId: item.mapId,
+                                reason: item.error ?? item.status,
+                            })),
+                    };
+
+                    zip.file("download-manifest.json", JSON.stringify(manifest, null, 2));
+
+                    const archive = await zip.generateAsync({
+                        type: "blob",
+                        compression: "DEFLATE",
+                        compressionOptions: { level: 6 },
+                    });
+
+                    const url = URL.createObjectURL(archive);
+                    zipObjectUrlRef.current = url;
+                    const filename = `tournament-${tournamentId}-map-pool-${batchId}.zip`;
+                    setZipDownloadUrl(url);
+                    setZipDownloadName(filename);
+
+                    const anchor = document.createElement("a");
+                    anchor.href = url;
+                    anchor.download = filename;
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    document.body.removeChild(anchor);
+
+                    setFeedback({ intent: "success", text: `已生成压缩包（${successfulItems.length} 张图谱）` });
+                } catch (error) {
+                    console.error("组装压缩包失败:", error);
+                    setFeedback({ intent: "error", text: "压缩下载包生成失败，请重试" });
+                } finally {
+                    zipGeneratingRef.current = false;
+                }
+            },
+            [cleanupZipUrl, setFeedback, tournamentId]
+        );
+
+        const processQueue = useCallback(async () => {
+            if (!tournamentId) {
+                return;
+            }
+
+            const batchId = currentBatchIdRef.current;
+            if (!batchId) {
+                return;
+            }
+
+            for (const item of downloadQueueRef.current) {
+                if (currentBatchIdRef.current !== batchId) {
+                    // 新的批次已启动，提前结束当前循环
+                    return;
+                }
+
+                if (item.status !== "pending") {
+                    continue;
+                }
+
+                if (!item.beatmapsetId) {
+                    updateDownloadItem(item.mapId, (prev) => ({
+                        ...prev,
+                        status: "error",
+                        error: "缺少 beatmapset_id 无法下载",
+                    }));
+                    continue;
+                }
+
+                updateDownloadItem(item.mapId, (prev) => ({
+                    ...prev,
+                    status: "downloading",
+                    progress: 0,
+                    receivedBytes: 0,
+                    totalBytes: null,
+                    error: undefined,
+                }));
+
+                const controller = new AbortController();
+                downloadAbortControllerRef.current = controller;
+
+                try {
+                    const response = await fetch(
+                        `/api/tournaments/${encodeURIComponent(tournamentId)}/map-pool/download-map`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({ mapId: item.mapId }),
+                            signal: controller.signal,
+                        }
+                    );
+
+                    if (!response.ok || !response.body) {
+                        let reason = "下载失败";
+                        try {
+                            const payload = await response.json();
+                            reason = payload?.error ?? reason;
+                        } catch {
+                            // ignore parse error
+                        }
+                        throw new Error(reason);
+                    }
+
+                    const totalBytes = Number(response.headers.get("content-length") ?? "0");
+                    let received = 0;
+                    const reader = response.body.getReader();
+                    const chunks: Uint8Array[] = [];
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) {
+                            break;
+                        }
+                        if (value) {
+                            chunks.push(value);
+                            received += value.length;
+                            updateDownloadItem(item.mapId, (prev) => ({
+                                ...prev,
+                                receivedBytes: received,
+                                totalBytes: totalBytes > 0 ? totalBytes : null,
+                                progress:
+                                    totalBytes > 0
+                                        ? Math.min(received / totalBytes, 0.99)
+                                        : Math.min(prev.progress + value.length / 5_000_000, 0.99),
+                            }));
+                        }
+                    }
+
+                    const aggregated = new Uint8Array(received);
+                    let offset = 0;
+                    for (const chunk of chunks) {
+                        aggregated.set(chunk, offset);
+                        offset += chunk.length;
+                    }
+
+                    const blob = new Blob([aggregated], {
+                        type: response.headers.get("content-type") ?? "application/octet-stream",
+                    });
+                    downloadBlobsRef.current.set(item.mapId, blob);
+
+                    updateDownloadItem(item.mapId, (prev) => ({
+                        ...prev,
+                        status: "success",
+                        progress: 1,
+                        receivedBytes: received,
+                        totalBytes: totalBytes > 0 ? totalBytes : received,
+                    }));
+                } catch (error) {
+                    if (error instanceof DOMException && error.name === "AbortError") {
+                        updateDownloadItem(item.mapId, (prev) => ({
+                            ...prev,
+                            status: "cancelled",
+                            error: "已取消",
+                        }));
+                        return;
+                    }
+
+                    console.error("下载图谱失败:", error);
+                    updateDownloadItem(item.mapId, (prev) => ({
+                        ...prev,
+                        status: "error",
+                        progress: 0,
+                        error: error instanceof Error ? error.message : "下载失败",
+                    }));
+                } finally {
+                    downloadAbortControllerRef.current = null;
+                }
+            }
+
+            if (currentBatchIdRef.current === batchId) {
+                await assembleZip(batchId);
+            }
+        }, [assembleZip, tournamentId, updateDownloadItem]);
+
+        useEffect(() => {
+            if (isDownloadRunning) {
+                return;
+            }
+            if (downloadQueue.length === 0) {
+                return;
+            }
+            if (!downloadQueue.some((item) => item.status === "pending")) {
+                return;
+            }
+
+            setIsDownloadRunning(true);
+            void processQueue().finally(() => {
+                setIsDownloadRunning(false);
+            });
+        }, [downloadQueue, isDownloadRunning, processQueue]);
+
+        const downloadStats = useMemo(() => {
+            if (downloadQueue.length === 0) {
+                return {
+                    total: 0,
+                    success: 0,
+                    failed: 0,
+                    cancelled: 0,
+                    running: 0,
+                    overallProgress: 0,
+                    receivedBytes: 0,
+                    totalBytes: null as number | null,
+                };
+            }
+
+            let success = 0;
+            let failed = 0;
+            let cancelled = 0;
+            let running = 0;
+            let progressSum = 0;
+            let receivedBytes = 0;
+            let totalBytes = 0;
+
+            for (const item of downloadQueue) {
+                if (item.status === "success") {
+                    success += 1;
+                } else if (item.status === "error") {
+                    failed += 1;
+                } else if (item.status === "cancelled") {
+                    cancelled += 1;
+                } else if (item.status === "downloading") {
+                    running += 1;
+                }
+                progressSum += item.progress;
+                receivedBytes += item.receivedBytes;
+                if (item.totalBytes && item.totalBytes > 0) {
+                    totalBytes += item.totalBytes;
+                }
+            }
+
+            return {
+                total: downloadQueue.length,
+                success,
+                failed,
+                cancelled,
+                running,
+                overallProgress: Math.min(progressSum / downloadQueue.length, 1),
+                receivedBytes,
+                totalBytes: totalBytes > 0 ? totalBytes : null,
+            };
+        }, [downloadQueue]);
+
+        const handleCancelDownloads = useCallback(() => {
+            downloadAbortControllerRef.current?.abort();
+            currentBatchIdRef.current = null;
+            downloadBlobsRef.current.clear();
+            zipGeneratingRef.current = false;
+            cleanupZipUrl();
+            setDownloadQueueSafe((prev) =>
+                prev.map((item) => {
+                    if (item.status === "pending" || item.status === "downloading") {
+                        return {
+                            ...item,
+                            status: "cancelled",
+                            error: "已取消",
+                            progress: 0,
+                        };
+                    }
+                    return item;
+                })
+            );
+            setIsDownloadRunning(false);
+            setFeedback({ intent: "success", text: "已停止当前下载队列" });
+        }, [cleanupZipUrl, setDownloadQueueSafe, setFeedback]);
+
+        const handleRetryFailed = useCallback(() => {
+            const hasRetryable = downloadQueueRef.current.some(
+                (item) => item.status === "error" || item.status === "cancelled"
+            );
+            if (!hasRetryable) {
+                setFeedback({ intent: "error", text: "暂无需要重试的图谱" });
+                return;
+            }
+
+            currentBatchIdRef.current = Date.now();
+            downloadBlobsRef.current.clear();
+            cleanupZipUrl();
+            zipGeneratingRef.current = false;
+            setDownloadManagerMinimized(false);
+            setDownloadQueueSafe((prev) =>
+                prev.map((item) => {
+                    if (item.status === "error" || item.status === "cancelled") {
+                        if (!item.beatmapsetId) {
+                            return {
+                                ...item,
+                                status: "error",
+                                progress: 0,
+                                error: "缺少 beatmapset_id 无法下载",
+                            };
+                        }
+                        return {
+                            ...item,
+                            status: "pending",
+                            progress: 0,
+                            receivedBytes: 0,
+                            totalBytes: null,
+                            error: undefined,
+                        };
+                    }
+                    return item;
+                })
+            );
+            setFeedback({ intent: "success", text: "已重新排队失败或取消的下载" });
+        }, [cleanupZipUrl, setDownloadQueueSafe, setFeedback]);
+
+        const handleToggleMinimize = useCallback(() => {
+            setDownloadManagerMinimized((prev) => !prev);
+        }, []);
+
+        const handleCloseManager = useCallback(() => {
+            if (isDownloadRunning) {
+                handleCancelDownloads();
+            }
+            setDownloadManagerVisible(false);
+        }, [handleCancelDownloads, isDownloadRunning]);
+
+        useEffect(() => {
+            return () => {
+                downloadAbortControllerRef.current?.abort();
+                cleanupZipUrl();
+            };
+        }, [cleanupZipUrl]);
 
         const [formState, setFormState] = useState({
             beatmapId: "",
@@ -189,8 +803,6 @@ const useStyles = makeStyles({
             tags: "",
             coverUrl: "",
         });
-
-        const tournamentId = tournament?.id;
 
         const toStringValue = useCallback((value: unknown) => {
             if (value === null || value === undefined) {
@@ -360,9 +972,76 @@ const useStyles = makeStyles({
         };
 
         const downloadSelected = useCallback(() => {
+            if (!tournamentId) {
+                setFeedback({ intent: "error", text: "缺少比赛信息，无法下载" });
+                return;
+            }
+
             const selected = maps.filter((map) => selectedMaps.includes(String(map.id)));
-            setFeedback({ intent: "success", text: `即将下载 ${selected.length} 张图谱（功能待实现）` });
-        }, [maps, selectedMaps]);
+            if (selected.length === 0) {
+                setFeedback({ intent: "error", text: "请先选择需要下载的图谱" });
+                return;
+            }
+
+            if (isDownloadRunning) {
+                downloadAbortControllerRef.current?.abort();
+                setIsDownloadRunning(false);
+            }
+
+            currentBatchIdRef.current = Date.now();
+            downloadBlobsRef.current.clear();
+            cleanupZipUrl();
+            zipGeneratingRef.current = false;
+
+            const queueItems = selected.map<DownloadItemState>((map) => {
+                const identifier = map.beatmapset_id ?? map.beatmap_id;
+                const filename = sanitizeFilename(
+                    `[${map.mod_value}] ${map.title} - ${map.difficulty} (${identifier}).osz`
+                );
+
+                if (!map.beatmapset_id) {
+                    return {
+                        mapId: map.id,
+                        beatmapsetId: map.beatmapset_id,
+                        title: map.title,
+                        difficulty: map.difficulty,
+                        modValue: map.mod_value,
+                        status: "error",
+                        progress: 0,
+                        receivedBytes: 0,
+                        totalBytes: null,
+                        error: "缺少 beatmapset_id 无法下载",
+                        filename,
+                    };
+                }
+
+                return {
+                    mapId: map.id,
+                    beatmapsetId: map.beatmapset_id,
+                    title: map.title,
+                    difficulty: map.difficulty,
+                    modValue: map.mod_value,
+                    status: "pending",
+                    progress: 0,
+                    receivedBytes: 0,
+                    totalBytes: null,
+                    filename,
+                };
+            });
+
+            setDownloadQueueSafe(() => queueItems);
+            setDownloadManagerVisible(true);
+            setDownloadManagerMinimized(true);
+            setFeedback({ intent: "success", text: `已加入 ${queueItems.length} 张图谱到下载队列` });
+        }, [
+            cleanupZipUrl,
+            maps,
+            selectedMaps,
+            tournamentId,
+            setDownloadQueueSafe,
+            setFeedback,
+            isDownloadRunning,
+        ]);
 
         const handleToggleSelectAll = useCallback(() => {
             if (selectedMaps.length === maps.length) {
@@ -371,6 +1050,16 @@ const useStyles = makeStyles({
                 setSelectedMaps(maps.map((map) => String(map.id)));
             }
         }, [maps, selectedMaps]);
+
+        const handleCopyBid = useCallback(async (bid: number) => {
+            try {
+                await navigator.clipboard.writeText(String(bid));
+                setFeedback({ intent: "success", text: `已复制 BID ${bid}` });
+            } catch (err) {
+                console.error("复制 BID 失败:", err);
+                setFeedback({ intent: "error", text: "复制失败，请稍后再试" });
+            }
+        }, []);
 
         const handleDeleteSelected = useCallback(async () => {
             if (!tournamentId || selectedMaps.length === 0) {
@@ -500,7 +1189,21 @@ const useStyles = makeStyles({
                 createTableColumn<MapEntry>({
                     columnId: "bid",
                     renderHeaderCell: () => "BID",
-                    renderCell: (item) => <Text>{item.beatmap_id}</Text>,
+                    renderCell: (item) => (
+                        <div className={styles.bidCell}>
+                            <Text>{item.beatmap_id}</Text>
+                            <Tooltip content="复制 BID" relationship="label">
+                                <Button
+                                    appearance="subtle"
+                                    size="small"
+                                    icon={<CopyRegular />}
+                                    onClick={() => {
+                                        void handleCopyBid(item.beatmap_id);
+                                    }}
+                                />
+                            </Tooltip>
+                        </div>
+                    ),
                 }),
                 createTableColumn<MapEntry>({
                     columnId: "cover",
@@ -524,10 +1227,18 @@ const useStyles = makeStyles({
                     columnId: "info",
                     renderHeaderCell: () => "图谱信息",
                     renderCell: (item) => (
-                        <div className={styles.mapInfo}>
-                            <Text weight="semibold">{item.title}</Text>
-                            <Text size={200}>{item.artist} - {item.mapper}</Text>
-                            <Text size={100}>[{item.difficulty}]</Text>
+                        <div className={styles.mapInfoColumn}>
+                            <div className={styles.mapInfo}>
+                                <Text weight="semibold" className={styles.ellipsis}>
+                                    {item.title}
+                                </Text>
+                                <Text size={200} className={styles.ellipsis}>
+                                    {item.artist} - {item.mapper}
+                                </Text>
+                                <Text size={100} className={styles.ellipsis}>
+                                    [{item.difficulty}]
+                                </Text>
+                            </div>
                         </div>
                     ),
                 }),
@@ -564,31 +1275,67 @@ const useStyles = makeStyles({
                             {item.tags.length === 0 ? (
                                 <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>暂无</Text>
                             ) : (
-                                item.tags.map((tag) => (
-                                    <Badge key={tag} appearance="outline" size="small">
-                                        {tag}
-                                    </Badge>
-                                ))
+                                <>
+                                    {item.tags.slice(0, 2).map((tag) => (
+                                        <Badge key={tag} appearance="outline" size="small">
+                                            {tag}
+                                        </Badge>
+                                    ))}
+                                    {item.tags.length > 2 && (
+                                        <Popover>
+                                            <PopoverTrigger disableButtonEnhancement>
+                                                <Badge appearance="outline" size="small">
+                                                    +{item.tags.length - 2}
+                                                </Badge>
+                                            </PopoverTrigger>
+                                            <PopoverSurface>
+                                                <div className={styles.tagPopover}>
+                                                    {item.tags.slice(2).map((tag) => (
+                                                        <Badge key={tag} appearance="outline" size="small">
+                                                            {tag}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
+                                            </PopoverSurface>
+                                        </Popover>
+                                    )}
+                                </>
                             )}
                         </div>
                     ),
                 }),
             ],
-            [selectedMaps, styles.coverFallback, styles.coverImage, styles.coverWrapper, styles.mapInfo, styles.tagList]
+            [
+                handleCopyBid,
+                selectedMaps,
+                styles.bidCell,
+                styles.coverFallback,
+                styles.coverImage,
+                styles.coverWrapper,
+                styles.mapInfo,
+                styles.mapInfoColumn,
+                styles.tagList,
+                styles.tagPopover,
+            ]
         );
 
         return (
-            <Card>
+            <Card className={styles.root}>
                 <CardHeader
                     header={<Title3>{tournament.current_stage.toUpperCase()} 图池</Title3>}
                     description="当前阶段的比赛图池"
                     action={
-                        <div className={styles.toolbar}>
+                        <div className={styles.headerActions}>
                             <Button appearance="transparent" onClick={() => void loadMaps()} disabled={loading}>
                                 刷新
                             </Button>
                             {canManage && (
-                                <Button appearance="primary" icon={<AddRegular />} onClick={() => setDialogOpen(true)}>
+                                <Button
+                                    appearance="primary"
+                                    icon={<AddRegular />}
+                                    onClick={() => setDialogOpen(true)}
+                                    className={styles.addMapButton}
+                                >
                                     添加图谱
                                 </Button>
                             )}
@@ -652,22 +1399,190 @@ const useStyles = makeStyles({
                             getRowId={(item) => String(item.id)}
                         >
                             <DataGridHeader>
-                                <DataGridRow>
+                                <DataGridRow className={styles.dataRow}>
                                     {({ renderHeaderCell }) => (
-                                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                                        <DataGridHeaderCell className={styles.headerCell}>
+                                            {renderHeaderCell()}
+                                        </DataGridHeaderCell>
                                     )}
                                 </DataGridRow>
                             </DataGridHeader>
                             <DataGridBody<MapEntry>>
                                 {({ item, rowId }) => (
-                                    <DataGridRow<MapEntry> key={rowId}>
-                                        {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
+                                    <DataGridRow<MapEntry> key={rowId} className={styles.dataRow}>
+                                        {({ renderCell }) => (
+                                            <DataGridCell className={styles.compactCell}>
+                                                {renderCell(item)}
+                                            </DataGridCell>
+                                        )}
                                     </DataGridRow>
                                 )}
                             </DataGridBody>
                         </DataGrid>
                     )}
                 </div>
+
+                {downloadManagerVisible && (
+                    <div className={styles.downloadContainer}>
+                        <div className={styles.downloadHeader}>
+                            <Title3>下载管理器</Title3>
+                            <div className={styles.downloadControls}>
+                                <Button appearance="subtle" size="small" onClick={handleToggleMinimize}>
+                                    {downloadManagerMinimized ? "展开" : "最小化"}
+                                </Button>
+                                <Button appearance="subtle" size="small" onClick={handleCloseManager}>
+                                    关闭
+                                </Button>
+                            </div>
+                        </div>
+
+                        {downloadManagerMinimized ? (
+                            <div className={styles.downloadMinimized}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                    <Text className={styles.downloadMinimizedLabel}>
+                                        {downloadStats.running > 0
+                                            ? `后台下载中 · 正在处理 ${downloadStats.running} 项`
+                                            : downloadStats.success === downloadStats.total && downloadStats.total > 0
+                                            ? "下载完成"
+                                            : "等待下载"}
+                                    </Text>
+                                    <Text className={styles.downloadStatus}>
+                                        队列 {downloadStats.total} · 成功 {downloadStats.success} · 失败 {downloadStats.failed}
+                                        {downloadStats.cancelled > 0 ? ` · 取消 ${downloadStats.cancelled}` : ""}
+                                    </Text>
+                                </div>
+                                <div className={styles.downloadProgress}>
+                                    <ProgressBar value={downloadStats.overallProgress} />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className={styles.downloadToolbar}>
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                        <Text>
+                                            队列 {downloadStats.total} · 成功 {downloadStats.success} · 失败 {downloadStats.failed}
+                                            {downloadStats.cancelled > 0 ? ` · 取消 ${downloadStats.cancelled}` : ""}
+                                        </Text>
+                                        {downloadStats.totalBytes !== null && (
+                                            <Text className={styles.downloadCount}>
+                                                {formatBytes(downloadStats.receivedBytes)} / {formatBytes(downloadStats.totalBytes)}
+                                            </Text>
+                                        )}
+                                    </div>
+                                    <div className={styles.downloadActionGroup}>
+                                        <Button
+                                            appearance="subtle"
+                                            size="small"
+                                            onClick={handleRetryFailed}
+                                            disabled={!downloadQueue.some((item) =>
+                                                item.status === "error" || item.status === "cancelled"
+                                            )}
+                                        >
+                                            重试失败
+                                        </Button>
+                                        <Button
+                                            appearance="subtle"
+                                            size="small"
+                                            onClick={handleCancelDownloads}
+                                            disabled={
+                                                !downloadQueue.some((item) =>
+                                                    item.status === "pending" || item.status === "downloading"
+                                                )
+                                            }
+                                        >
+                                            停止下载
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className={styles.downloadProgressRow}>
+                                    <ProgressBar
+                                        value={downloadStats.overallProgress}
+                                        className={styles.downloadProgress}
+                                    />
+                                    <Text className={styles.downloadStatus}>
+                                        {(downloadStats.overallProgress * 100).toFixed(0)}%
+                                    </Text>
+                                </div>
+
+                                <div className={styles.downloadList}>
+                                    {downloadQueue.map((item) => (
+                                        <div key={item.mapId} className={styles.downloadItem}>
+                                            <div className={styles.downloadItemHeader}>
+                                                <div>
+                                                    <Text weight="semibold">
+                                                        [{item.modValue}] {item.title}
+                                                    </Text>
+                                                    <Text size={200} className={styles.downloadStatus}>
+                                                        [{item.difficulty}]
+                                                    </Text>
+                                                </div>
+                                                <Text
+                                                    className={
+                                                        item.status === "error"
+                                                            ? styles.downloadError
+                                                            : item.status === "success"
+                                                            ? styles.downloadSuccess
+                                                            : styles.downloadStatus
+                                                    }
+                                                >
+                                                    {item.status === "pending" && "等待中"}
+                                                    {item.status === "downloading" &&
+                                                        `下载中 ${(item.progress * 100).toFixed(0)}%`}
+                                                    {item.status === "success" && "完成"}
+                                                    {item.status === "error" && (item.error ?? "失败")}
+                                                    {item.status === "cancelled" && "已取消"}
+                                                </Text>
+                                            </div>
+
+                                            <div className={styles.downloadProgressRow}>
+                                                <ProgressBar value={item.progress} className={styles.downloadProgress} />
+                                                <Text className={styles.downloadStatus}>
+                                                    {formatBytes(item.receivedBytes)}
+                                                    {item.totalBytes ? ` / ${formatBytes(item.totalBytes)}` : ""}
+                                                </Text>
+                                            </div>
+                                            {item.error && item.status === "error" && (
+                                                <Text className={styles.downloadError}>{item.error}</Text>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className={styles.downloadFooter}>
+                                    <div>
+                                        {zipDownloadUrl && zipDownloadName ? (
+                                            <Text>
+                                                压缩包已生成：
+                                                <Text weight="semibold" as="span">
+                                                    {zipDownloadName}
+                                                </Text>
+                                            </Text>
+                                        ) : (
+                                            <Text className={styles.downloadStatus}>等待下载完成以生成压缩包</Text>
+                                        )}
+                                    </div>
+                                    {zipDownloadUrl && zipDownloadName && (
+                                        <Button
+                                            appearance="primary"
+                                            size="small"
+                                            onClick={() => {
+                                                const anchor = document.createElement("a");
+                                                anchor.href = zipDownloadUrl;
+                                                anchor.download = zipDownloadName;
+                                                document.body.appendChild(anchor);
+                                                anchor.click();
+                                                document.body.removeChild(anchor);
+                                            }}
+                                        >
+                                            重新下载压缩包
+                                        </Button>
+                                    )}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
 
                 <Dialog
                     open={dialogOpen}
