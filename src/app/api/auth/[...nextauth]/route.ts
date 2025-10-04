@@ -16,24 +16,35 @@ const OsuProvider = CredentialsProvider({
     },
   },
   async authorize(credentials) {
-    try {
-      if (!credentials?.code) {
-        throw new Error('授权码缺失');
-      }
+    if (!credentials?.code) {
+      throw new Error('授权码缺失');
+    }
 
+    // 确保环境变量已设置
+    const clientId = process.env.OSU_CLIENT_ID;
+    const clientSecret = process.env.OSU_CLIENT_SECRET;
+    const redirectUri = process.env.OSU_REDIRECT_URI;
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      console.error('认证环境变量缺失 (OSU_CLIENT_ID, OSU_CLIENT_SECRET, OSU_REDIRECT_URI)');
+      throw new Error('服务器认证配置不完整，请联系管理员。');
+    }
+
+    try {
       // 使用授权码获取访问令牌
       const tokenResponse = await axios.post(
         'https://osu.ppy.sh/oauth/token',
-        new URLSearchParams({
-          client_id: process.env.OSU_CLIENT_ID || '',
-          client_secret: process.env.OSU_CLIENT_SECRET || '',
+        {
+          client_id: clientId,
+          client_secret: clientSecret,
           code: credentials.code,
           grant_type: 'authorization_code',
-          redirect_uri: process.env.OSU_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
-        }),
+          redirect_uri: redirectUri,
+        },
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         }
       );
@@ -43,7 +54,7 @@ const OsuProvider = CredentialsProvider({
       // 使用访问令牌获取用户信息
       const osuUser = await fetchOsuUserInfo(access_token);
       if (!osuUser) {
-        throw new Error('无法获取用户信息');
+        throw new Error('无法从OSU API获取用户信息');
       }
 
       // 保存或更新用户到数据库
@@ -63,9 +74,16 @@ const OsuProvider = CredentialsProvider({
         access_token,
         refresh_token,
       };
-    } catch (error) {
-      console.error('OSU认证失败:', error);
-      return null;
+    } catch (error: any) {
+      console.error('OSU认证流程失败:', error.response?.data || error.message);
+      // 抛出更具体的错误信息
+      if (error.response?.data?.error === 'invalid_grant') {
+        throw new Error('无效的授权码或授权码已过期。请重新登录。');
+      }
+      if (error.response?.data?.error === 'invalid_client') {
+        throw new Error('服务器认证配置错误，请联系管理员。');
+      }
+      throw new Error(error.response?.data?.message || '认证时发生未知错误。');
     }
   },
 });
