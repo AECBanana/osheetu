@@ -29,7 +29,7 @@ export const testDbConnection = async () => {
 // 执行SQL查询
 export const query = async (sql: string, params?: any[]) => {
   try {
-    const [rows] = await pool.execute(sql, params);
+    const [rows] = await pool.query(sql, params);
     return rows;
   } catch (error) {
     console.error('SQL查询错误:', error);

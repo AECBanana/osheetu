@@ -48,20 +48,27 @@ import {
 
 const useStyles = makeStyles({
   shell: {
-    display: "grid",
-    gridTemplateColumns: "auto 1fr",
+    display: "flex",
     minHeight: "100vh",
     backgroundColor: "var(--colorNeutralBackground2)",
   },
   drawer: {
+    flex: "0 0 auto",
     minHeight: "100%",
     borderRight: "1px solid var(--colorNeutralStroke2)",
+  },
+  shellCollapsed: {
+    flexDirection: "column",
+    [`@media (min-width: 768px)`]: {
+      flexDirection: "row",
+    },
   },
   drawerBody: {
     display: "flex",
     flexDirection: "column",
     gap: "16px",
     paddingBottom: "24px",
+    height: "100%",
   },
   userSummary: {
     display: "flex",
@@ -108,7 +115,7 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "24px",
     padding: "32px 40px",
-    width: "100%",
+    flex: 1,
   },
   mainConstrained: {
     maxWidth: "1200px",
@@ -256,7 +263,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className={styles.shell}>
+      <div className={mergeClasses(styles.shell, !isNavOpen && styles.shellCollapsed)}>
         <NavDrawer
           open={isNavOpen}
           type="inline"
@@ -292,7 +299,7 @@ export default function Home() {
   return (
     <>
       <AuthHandler />
-      <div className={styles.shell}>
+      <div className={mergeClasses(styles.shell, !isNavOpen && styles.shellCollapsed)}>
         <NavDrawer
           open={isNavOpen}
           onOpenChange={(_, data) => setIsNavOpen(!!data.open)}

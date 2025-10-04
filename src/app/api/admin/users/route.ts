@@ -56,8 +56,7 @@ const fetchUsers = async ({ search, limit = 50, offset = 0, osuId }: FetchUsersP
   if (conditions.length > 0) {
     sql += ` WHERE ${conditions.join(" AND ")}`;
   }
-  sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
-  params.push(safeLimit, safeOffset);
+  sql += ` ORDER BY created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
   const rows = (await query(sql, params)) as UserRow[];
 
