@@ -101,14 +101,26 @@ declare module 'next-auth/jwt' {
   }
 }
 
+// 检测当前环境是否为生产环境
+const isProduction = process.env.NODE_ENV === 'production';
+
+// 为Vercel环境提供智能配置
 export const authOptions: NextAuthOptions = {
   providers: [OsuProvider],
-  secret: process.env.NEXTAUTH_SECRET,
+  // 在Vercel环境中，NEXTAUTH_SECRET是必需的
+  // 在开发环境中，如果没有设置，NextAuth会自动生成一个临时密钥
+  secret: isProduction ? process.env.NEXTAUTH_SECRET : process.env.NEXTAUTH_SECRET || undefined,
   session: {
     strategy: 'jwt' as const,
   },
   callbacks: {
     async jwt({ token, user }: { token: JWT; user?: any }) {
+      // 检查认证所需的环境变量是否配置
+      if (isProduction && !process.env.NEXTAUTH_SECRET) {
+        console.error('⚠️ 警告: 在生产环境中未设置NEXTAUTH_SECRET!');
+        console.error('请在Vercel项目设置中添加NEXTAUTH_SECRET环境变量');
+      }
+      
       if (user) {
         token.id = user.id;
         token.osu_id = user.osu_id;
