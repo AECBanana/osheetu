@@ -34,8 +34,22 @@ function AuthHandlerComponent() {
 
   useEffect(() => {
     const code = searchParams.get('code');
+    if (!code) {
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      const processedCode = sessionStorage.getItem('osu_auth_code');
+      if (processedCode === code) {
+        return;
+      }
+    }
+
     if (code && !isLoggingIn) {
       setIsLoggingIn(true);
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('osu_auth_code', code);
+      }
       signIn('osu', { code, redirect: false })
         .then((result) => {
           if (result?.ok) {
@@ -53,6 +67,9 @@ function AuthHandlerComponent() {
           router.replace('/');
         })
         .finally(() => {
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem('osu_auth_code');
+          }
           setIsLoggingIn(false);
         });
     }
