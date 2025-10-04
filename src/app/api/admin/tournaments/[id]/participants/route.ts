@@ -45,13 +45,17 @@ const fetchParticipants = async (tournamentId: number) => {
   }));
 };
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }
@@ -60,13 +64,17 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   return NextResponse.json({ participants });
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }
@@ -120,13 +128,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   return NextResponse.json({ participants }, { status: 201 });
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }

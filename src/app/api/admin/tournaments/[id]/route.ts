@@ -80,13 +80,17 @@ const mapTournamentDetail = (row: TournamentDetailRow) => {
   };
 };
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }
@@ -135,13 +139,17 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   });
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }
@@ -217,13 +225,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   return NextResponse.json({ tournament: mapTournamentDetail(updatedRows[0]) });
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   const session = await ensureAdminSession();
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
-  const tournamentId = Number(params.id);
+  const { id } = await context.params;
+  const tournamentId = Number(id);
   if (!tournamentId) {
     return NextResponse.json({ error: "无效的比赛ID" }, { status: 400 });
   }
