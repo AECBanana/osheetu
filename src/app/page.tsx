@@ -1,48 +1,100 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Title1,
   Body1,
   Button,
+  Caption1,
   Card,
-  CardHeader,
+  Nav,
+  NavItem,
+  Text,
+  Title2,
   makeStyles,
-  tokens,
 } from "@fluentui/react-components";
 import { useSession } from "next-auth/react";
 import { LoginComponent } from "./components/LoginComponent";
 import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
-import { logout, type User } from "../utils/auth";
+import { loginWithOsu, logout, type User } from "../utils/auth";
 import { AuthHandler } from "./components/AuthHandler";
 
 const useStyles = makeStyles({
-  container: {
-    padding: "20px",
+  layout: {
+    display: "flex",
+    gap: "32px",
+    padding: "32px 24px",
     maxWidth: "1200px",
     margin: "0 auto",
   },
-  header: {
-    textAlign: "center",
-    marginBottom: "32px",
-    background: `linear-gradient(135deg, ${tokens.colorBrandBackground} 0%, ${tokens.colorBrandBackground2} 100%)`,
-    padding: "24px",
-    borderRadius: "12px",
-    color: tokens.colorNeutralForegroundOnBrand,
+  sidebar: {
+    width: "280px",
+    flexShrink: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
   },
-  welcomeCard: {
-    padding: "32px",
-    textAlign: "center",
-    marginBottom: "24px",
+  sidebarCard: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+    padding: "20px",
+  },
+  brand: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  userSummary: {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  },
+  avatar: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "50%",
+    objectFit: "cover",
+  },
+  navSections: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  },
+  navSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  navSectionTitle: {
+    color: "var(--colorNeutralForeground3)",
+  },
+  actions: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  main: {
+    flex: 1,
+    minWidth: 0,
+  },
+  loadingCard: {
+    padding: "24px",
   },
 });
+
+interface NavSectionConfig {
+  title: string;
+  items: Array<{ value: string; label: string; description?: string }>;
+}
 
 export default function Home() {
   const styles = useStyles();
   const { data: session, status } = useSession();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("overview");
   const loading = status === "loading";
+
   const user = useMemo(() => {
     if (!session?.user) {
       return null;
@@ -55,34 +107,101 @@ export default function Home() {
       username: username as string,
       avatar_url: avatar_url as string,
       is_admin: is_admin as boolean,
-      groups: groups as string[] | undefined
+      groups: groups as string[] | undefined,
     } satisfies User;
   }, [session]);
 
-  const handleLogout = async () => {
+  const navSections = useMemo<NavSectionConfig[]>(() => {
+    const sections: NavSectionConfig[] = [
+      {
+        title: "基础功能",
+        items: [
+          { value: "overview", label: "总览" },
+          { value: "scores", label: "分数提交" },
+        ],
+      },
+      {
+        title: "对局工具",
+        items: [
+          { value: "mappool", label: "图池" },
+          { value: "practice", label: "练图表总览" },
+          { value: "analysis", label: "对手分析" },
+          { value: "banpick", label: "BP记分板" },
+        ],
+      },
+    ];
+
+    if (user?.is_admin) {
+      sections.push({
+        title: "管理",
+        items: [{ value: "admin", label: "管理面板" }],
+      });
+    }
+
+    return sections;
+  }, [user?.is_admin]);
+
+  const handleLogout = useCallback(async () => {
     try {
       await logout();
       setShowAdminPanel(false);
+      setSelectedTab("overview");
     } catch (error) {
-      console.error('登出失败:', error);
+      console.error("登出失败:", error);
     }
-  };
+  }, []);
+
+  const handleLogin = useCallback(async () => {
+    try {
+      await loginWithOsu();
+    } catch (error) {
+      console.error("登录发起失败:", error);
+    }
+  }, []);
+
+  const handleNavSelect = useCallback(
+    (_event: unknown, data: { value?: unknown }) => {
+      if (typeof data.value !== "string") {
+        return;
+      }
+
+      if (data.value === "admin") {
+        setShowAdminPanel(true);
+      } else {
+        setShowAdminPanel(false);
+        setSelectedTab(data.value);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     if (!user) {
       setShowAdminPanel(false);
+      setSelectedTab("overview");
+    } else if (!user.is_admin && showAdminPanel) {
+      setShowAdminPanel(false);
     }
-  }, [user]);
+  }, [user, showAdminPanel]);
+
+  const navSelectedValue = showAdminPanel ? "admin" : selectedTab;
 
   if (loading) {
     return (
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <Title1>OSU! 比赛管理系统</Title1>
-          <Body1 style={{ marginTop: "8px", opacity: 0.9 }}>
-            加载中...
-          </Body1>
-        </div>
+      <div className={styles.layout}>
+        <aside className={styles.sidebar}>
+          <Card appearance="filled" className={styles.sidebarCard}>
+            <div className={styles.brand}>
+              <Title2>OSheetu</Title2>
+              <Body1>加载中...</Body1>
+            </div>
+          </Card>
+        </aside>
+        <main className={styles.main}>
+          <Card className={styles.loadingCard}>
+            <Body1>请稍候，正在获取会话信息...</Body1>
+          </Card>
+        </main>
       </div>
     );
   }
@@ -90,74 +209,60 @@ export default function Home() {
   return (
     <>
       <AuthHandler />
-      <div className={styles.container}>
-        {!user ? (
-          <>
-            <div className={styles.header}>
-              <Title1>OSU! 比赛管理系统</Title1>
-              <Body1 style={{ marginTop: "8px", opacity: 0.9 }}>
-                专业的OSU比赛组织和管理平台
-              </Body1>
+      <div className={styles.layout}>
+        <aside className={styles.sidebar}>
+          <Card appearance="filled" className={styles.sidebarCard}>
+            <div className={styles.brand}>
+              <Title2>OSheetu</Title2>
+              <Body1>osu! 比赛练图助手</Body1>
             </div>
-            <Card className={styles.welcomeCard}>
-              <CardHeader
-                header={<Title1>欢迎使用 OSU! 比赛管理系统</Title1>}
-                description="请使用 OSU! 账号登录以访问完整功能"
-              />
-              <LoginComponent />
-            </Card>
-          </>
-        ) : showAdminPanel && user.is_admin ? (
-          <>
-            <div className={styles.header}>
-              <Title1>管理面板</Title1>
-              <Body1 style={{ marginTop: "8px", opacity: 0.9 }}>
-                欢迎，{user.username}
-              </Body1>
-              <div style={{ marginTop: "12px", display: "flex", gap: "8px", justifyContent: "center" }}>
-                <Button
-                  appearance="secondary"
-                  onClick={() => setShowAdminPanel(false)}
-                >
-                  返回主页
-                </Button>
-                <Button
-                  appearance="secondary"
-                  onClick={handleLogout}
-                >
+            {user && (
+              <div className={styles.userSummary}>
+                <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
+                <div>
+                  <Text weight="semibold">{user.username}</Text>
+                  <Caption1>{user.is_admin ? "管理员" : "参赛选手"}</Caption1>
+                </div>
+              </div>
+            )}
+            {user && (
+              <div className={styles.navSections}>
+                {navSections.map((section) => (
+                  <div key={section.title} className={styles.navSection}>
+                    <Caption1 className={styles.navSectionTitle}>{section.title}</Caption1>
+                    <Nav selectedValue={navSelectedValue} onNavItemSelect={handleNavSelect}>
+                      {section.items.map((item) => (
+                        <NavItem key={item.value} value={item.value}>
+                          {item.label}
+                        </NavItem>
+                      ))}
+                    </Nav>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className={styles.actions}>
+              {user ? (
+                <Button appearance="secondary" onClick={handleLogout}>
                   登出
                 </Button>
-              </div>
+              ) : (
+                <Button appearance="primary" onClick={handleLogin}>
+                  使用 OSU! 账号登录
+                </Button>
+              )}
             </div>
+          </Card>
+        </aside>
+        <main className={styles.main}>
+          {!user ? (
+            <LoginComponent />
+          ) : showAdminPanel && user.is_admin ? (
             <AdminPanel user={user} />
-          </>
-        ) : (
-          <>
-            <div className={styles.header}>
-              <Title1>OSU! 比赛管理系统</Title1>
-              <Body1 style={{ marginTop: "8px", opacity: 0.9 }}>
-                欢迎，{user.username}
-              </Body1>
-              <div style={{ marginTop: "12px", display: "flex", gap: "8px", justifyContent: "center" }}>
-                {user.is_admin && (
-                  <Button
-                    appearance="primary"
-                    onClick={() => setShowAdminPanel(true)}
-                  >
-                    管理面板
-                  </Button>
-                )}
-                <Button
-                  appearance="secondary"
-                  onClick={handleLogout}
-                >
-                  登出
-                </Button>
-              </div>
-            </div>
-            <Dashboard user={user} />
-          </>
-        )}
+          ) : (
+            <Dashboard user={user} selectedTab={selectedTab} />
+          )}
+        </main>
       </div>
     </>
   );

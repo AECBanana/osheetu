@@ -11,13 +11,7 @@ import {
     Text,
     Body1,
     Caption1,
-    Divider,
-    Tab,
-    TabList,
-    SelectTabEvent,
-    SelectTabData,
     makeStyles,
-    tokens,
     MessageBar,
 } from "@fluentui/react-components";
 import { Overview } from "./tournament/Overview";
@@ -33,9 +27,6 @@ const useStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "24px",
-    },
-    tabContainer: {
-        marginBottom: "24px",
     },
     noAccessCard: {
         padding: "32px",
@@ -66,11 +57,11 @@ interface Tournament {
 
 interface DashboardProps {
     user: any; // 保持兼容性，但内部会使用useSession
+    selectedTab: string;
 }
 
-export function Dashboard({ user: propUser }: DashboardProps) {
+export function Dashboard({ user: propUser, selectedTab }: DashboardProps) {
     const styles = useStyles();
-    const [selectedTab, setSelectedTab] = useState("overview");
     const [tournaments, setTournaments] = useState<Tournament[]>([]);
     const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
     const [tournamentLoading, setTournamentLoading] = useState(true);
@@ -121,10 +112,6 @@ export function Dashboard({ user: propUser }: DashboardProps) {
             fetchTournaments();
         }
     }, [user]);
-
-    const onTabSelect = (event: SelectTabEvent, data: SelectTabData) => {
-        setSelectedTab(data.value as string);
-    };
 
     // 处理用户会话加载状态
     if (loading) {
@@ -252,18 +239,6 @@ export function Dashboard({ user: propUser }: DashboardProps) {
                             description={`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'} | 当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}
                         />
                     </Card>
-
-                    {/* 功能标签页 */}
-                    <div className={styles.tabContainer}>
-                        <TabList selectedValue={selectedTab} onTabSelect={onTabSelect}>
-                            <Tab value="overview">总览</Tab>
-                            <Tab value="mappool">图池</Tab>
-                            <Tab value="scores">分数提交</Tab>
-                            <Tab value="practice">练图表总览</Tab>
-                            <Tab value="analysis">对手分析</Tab>
-                            <Tab value="banpick">BP记分板</Tab>
-                        </TabList>
-                    </div>
 
                     {/* 标签页内容 */}
                     <div>
