@@ -361,7 +361,6 @@ export default function Home() {
           </NavDrawerHeader>
           <NavDrawerBody className={styles.drawerBody}>
             <div className={styles.drawerHeaderArea}>
-              <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
               {user ? (
                 <div className={styles.userSummary}>
                   <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
@@ -458,11 +457,10 @@ export default function Home() {
                 <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
               </Tooltip>
               <div className={styles.mainTitleGroup}>
-                <Title2>OSheetu 控制台</Title2>
                 <Body1>
                   {user
                     ? `欢迎回来，${user.username}`
-                    : "专业的 osu! 比赛组织与练图管理平台"}
+                    : "欢迎使用 OSheetu"}
                 </Body1>
               </div>
             </div>

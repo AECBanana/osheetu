@@ -645,13 +645,10 @@ const useStyles = makeStyles({
                         <div className={styles.mapInfoColumn}>
                             <div className={styles.mapInfo}>
                                 <Text weight="semibold" className={styles.ellipsis}>
-                                    {item.title}
+                                    {item.title} - {item.artist}
                                 </Text>
                                 <Text size={200} className={styles.ellipsis}>
-                                    {item.artist} - {item.mapper}
-                                </Text>
-                                <Text size={100} className={styles.ellipsis}>
-                                    [{item.difficulty}]
+                                     [{item.difficulty}] by {item.mapper}
                                 </Text>
                             </div>
                         </div>
@@ -813,7 +810,21 @@ const useStyles = makeStyles({
                             items={maps}
                             columns={columns}
                             getRowId={(item) => String(item.id)}
-                            style={{ minWidth: "1600px" }}
+                            style={{ minWidth: "1200px" }}
+                            columnSizingOptions={{
+                                select: { idealWidth: 40, minWidth: 40 },
+                                mod: { idealWidth: 60, minWidth: 60 },
+                                bid: { idealWidth: 140, minWidth: 140 },
+                                cover: { idealWidth: 80, minWidth: 80 },
+                                info: { minWidth: 280 },
+                                ar: { idealWidth: 60, minWidth: 60 },
+                                cs: { idealWidth: 60, minWidth: 60 },
+                                od: { idealWidth: 60, minWidth: 60 },
+                                bpm: { idealWidth: 70, minWidth: 70 },
+                                length: { idealWidth: 70, minWidth: 70 },
+                                tags: { minWidth: 120, defaultWidth: 120 },
+                            }}
+                            resizableColumns
                         >
                             <DataGridHeader>
                                 <DataGridRow className={styles.dataRow}>

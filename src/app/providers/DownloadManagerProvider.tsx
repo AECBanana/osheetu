@@ -197,14 +197,17 @@ export function DownloadManagerProvider({ children }: { children: ReactNode }) {
       setZipDownloadUrl(url);
       setZipDownloadName(filename);
 
-      if (typeof window !== "undefined") {
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = filename;
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-      }
+      // 延迟一小段时间再触发下载，确保状态更新和UI渲染完成
+      setTimeout(() => {
+        if (typeof window !== "undefined" && zipObjectUrlRef.current === url) {
+          const anchor = document.createElement("a");
+          anchor.href = url;
+          anchor.download = filename;
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+        }
+      }, 100);
     } catch (error) {
       console.error("Failed to assemble download zip:", error);
     } finally {
