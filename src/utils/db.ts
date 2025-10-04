@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import type { RowDataPacket } from 'mysql2';
 
 // 创建数据库连接池
 const pool = mysql.createPool({
@@ -167,3 +168,42 @@ export const initDatabase = async () => {
 };
 
 export default pool;
+
+export const ensureTournamentExtendedColumns = async () => {
+  const columnsToCheck: Array<{
+    name: string;
+    alter: string;
+  }> = [
+    {
+      name: "include_qualifier",
+      alter: "ALTER TABLE tournaments ADD COLUMN include_qualifier BOOLEAN DEFAULT FALSE",
+    },
+    {
+      name: "allow_custom_mods",
+      alter: "ALTER TABLE tournaments ADD COLUMN allow_custom_mods BOOLEAN DEFAULT FALSE",
+    },
+    {
+      name: "settings",
+      alter: "ALTER TABLE tournaments ADD COLUMN settings JSON NULL",
+    },
+  ];
+
+  for (const column of columnsToCheck) {
+    try {
+      const result = (await query(
+        `SHOW COLUMNS FROM tournaments LIKE ?`,
+        [column.name]
+      )) as RowDataPacket[];
+
+      if (result.length === 0) {
+        try {
+          await query(column.alter);
+        } catch (error) {
+          console.warn(`尝试添加列 ${column.name} 失败（可能已存在或缺少权限）:`, error);
+        }
+      }
+    } catch (error) {
+      console.warn(`检查列 ${column.name} 状态失败:`, error);
+    }
+  }
+};

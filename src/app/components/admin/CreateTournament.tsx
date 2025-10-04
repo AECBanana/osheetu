@@ -110,13 +110,29 @@ export function CreateTournament({ onCancel, onSuccess }: CreateTournamentProps)
                 }),
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || "创建比赛失败，请稍后重试");
+            const raw = await response.text();
+            let data: any = null;
+            if (raw) {
+                try {
+                    data = JSON.parse(raw);
+                } catch {
+                    if (!response.ok) {
+                        throw new Error(raw);
+                    }
+                    throw new Error("服务器返回了无法解析的响应");
+                }
             }
 
-            onSuccess(data.tournament);
+            if (!response.ok) {
+                const errorMessage = data?.error || raw || "创建比赛失败，请稍后重试";
+                throw new Error(errorMessage);
+            }
+
+            if (!data?.tournament) {
+                throw new Error("服务器未返回比赛信息");
+            }
+
+            onSuccess(data.tournament as TournamentSummary);
             setMessage({ intent: "success", text: "比赛创建成功" });
             setFormData({
                 name: "",

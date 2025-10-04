@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { query } from "@/utils/db";
+import { ensureTournamentExtendedColumns, query } from "@/utils/db";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
@@ -89,6 +89,8 @@ export async function GET(
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
 
+  await ensureTournamentExtendedColumns();
+
   const { id } = await context.params;
   const tournamentId = Number(id);
   if (!tournamentId) {
@@ -147,6 +149,8 @@ export async function PUT(
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
+
+  await ensureTournamentExtendedColumns();
 
   const { id } = await context.params;
   const tournamentId = Number(id);
@@ -233,6 +237,8 @@ export async function DELETE(
   if (!session) {
     return NextResponse.json({ error: "需要管理员权限" }, { status: 403 });
   }
+
+  await ensureTournamentExtendedColumns();
 
   const { id } = await context.params;
   const tournamentId = Number(id);

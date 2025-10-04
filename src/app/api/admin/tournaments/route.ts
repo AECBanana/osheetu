@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { query } from "@/utils/db";
+import { ensureTournamentExtendedColumns, query } from "@/utils/db";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
@@ -136,6 +136,8 @@ export async function POST(request: NextRequest) {
     includeQualifier,
     allowCustomMods,
   };
+
+  await ensureTournamentExtendedColumns();
 
   const insertResult = (await query(
     `INSERT INTO tournaments
