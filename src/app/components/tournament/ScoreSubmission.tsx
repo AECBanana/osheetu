@@ -112,7 +112,7 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
 
     useEffect(() => {
         void loadData();
-    }, [loadData]);
+    }, []);
 
     const handleSubmit = async () => {
         if (!selectedMap || !score) {
