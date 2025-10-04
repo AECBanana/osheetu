@@ -37,7 +37,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0);
+  background-color: rgba(156, 163, 175, 0.1);
   /* gray-400 with 50% opacity */
   border-radius: 10px;
   border: 2px solid transparent;
@@ -50,6 +50,7 @@ body {
 }
 
 ::-webkit-scrollbar-button {
+  background: transparent;
   display: none;
 }
 
