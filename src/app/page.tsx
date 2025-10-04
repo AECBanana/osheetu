@@ -2,53 +2,69 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  AppItem,
   Body1,
   Button,
   Caption1,
-  Card,
-  Nav,
+  NavDivider,
+  NavDrawer,
+  NavDrawerBody,
+  NavDrawerHeader,
   NavItem,
+  NavSectionHeader,
   Text,
   Title2,
+  Tooltip,
   makeStyles,
 } from "@fluentui/react-components";
+import { Hamburger } from "@fluentui/react-components";
 import { useSession } from "next-auth/react";
 import { LoginComponent } from "./components/LoginComponent";
 import { Dashboard } from "./components/Dashboard";
 import { AdminPanel } from "./components/AdminPanel";
 import { loginWithOsu, logout, type User } from "../utils/auth";
 import { AuthHandler } from "./components/AuthHandler";
+import {
+  Board20Filled,
+  Board20Regular,
+  BoxMultiple20Filled,
+  BoxMultiple20Regular,
+  DataArea20Filled,
+  DataArea20Regular,
+  DocumentBulletListMultiple20Filled,
+  DocumentBulletListMultiple20Regular,
+  MegaphoneLoud20Filled,
+  MegaphoneLoud20Regular,
+  PeopleStar20Filled,
+  PeopleStar20Regular,
+  PersonCircle32Regular,
+  PersonSearch20Filled,
+  PersonSearch20Regular,
+  bundleIcon,
+} from "@fluentui/react-icons";
 
 const useStyles = makeStyles({
-  layout: {
-    display: "flex",
-    gap: "32px",
-    padding: "32px 24px",
-    maxWidth: "1200px",
-    margin: "0 auto",
+  shell: {
+    display: "grid",
+    gridTemplateColumns: "auto 1fr",
+    minHeight: "100vh",
+    backgroundColor: "var(--colorNeutralBackground2)",
   },
-  sidebar: {
-    width: "280px",
-    flexShrink: 0,
+  drawer: {
+    minHeight: "100%",
+    borderRight: "1px solid var(--colorNeutralStroke2)",
+  },
+  drawerBody: {
     display: "flex",
     flexDirection: "column",
     gap: "16px",
-  },
-  sidebarCard: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-    padding: "20px",
-  },
-  brand: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "4px",
+    paddingBottom: "24px",
   },
   userSummary: {
     display: "flex",
     alignItems: "center",
     gap: "12px",
+    padding: "0 4px",
   },
   avatar: {
     width: "40px",
@@ -56,43 +72,69 @@ const useStyles = makeStyles({
     borderRadius: "50%",
     objectFit: "cover",
   },
-  navSections: {
+  userInfo: {
     display: "flex",
     flexDirection: "column",
-    gap: "12px",
+    gap: "4px",
   },
-  navSection: {
+  navGroup: {
     display: "flex",
     flexDirection: "column",
-    gap: "8px",
+    gap: "4px",
   },
-  navSectionTitle: {
-    color: "var(--colorNeutralForeground3)",
-  },
-  actions: {
+  navActions: {
     display: "flex",
     flexDirection: "column",
     gap: "8px",
+    padding: "0 4px",
   },
   main: {
-    flex: 1,
-    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "24px",
+    padding: "32px 40px",
+    maxWidth: "1200px",
+    width: "100%",
+    margin: "0 auto",
   },
-  loadingCard: {
-    padding: "24px",
+  mainHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: "16px",
+  },
+  mainHeaderLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  },
+  mainTitleGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  },
+  mainContent: {
+    flex: 1,
+  },
+  navPlaceholder: {
+    padding: "0 4px",
   },
 });
 
-interface NavSectionConfig {
-  title: string;
-  items: Array<{ value: string; label: string; description?: string }>;
-}
+const OverviewIcon = bundleIcon(Board20Filled, Board20Regular);
+const ScoresIcon = bundleIcon(DocumentBulletListMultiple20Filled, DocumentBulletListMultiple20Regular);
+const MapPoolIcon = bundleIcon(BoxMultiple20Filled, BoxMultiple20Regular);
+const PracticeIcon = bundleIcon(DataArea20Filled, DataArea20Regular);
+const AnalysisIcon = bundleIcon(PersonSearch20Filled, PersonSearch20Regular);
+const BanPickIcon = bundleIcon(PeopleStar20Filled, PeopleStar20Regular);
+const AdminIcon = bundleIcon(MegaphoneLoud20Filled, MegaphoneLoud20Regular);
 
 export default function Home() {
   const styles = useStyles();
   const { data: session, status } = useSession();
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [selectedTab, setSelectedTab] = useState("overview");
+  const [isNavOpen, setIsNavOpen] = useState(true);
   const loading = status === "loading";
 
   const user = useMemo(() => {
@@ -110,36 +152,6 @@ export default function Home() {
       groups: groups as string[] | undefined,
     } satisfies User;
   }, [session]);
-
-  const navSections = useMemo<NavSectionConfig[]>(() => {
-    const sections: NavSectionConfig[] = [
-      {
-        title: "基础功能",
-        items: [
-          { value: "overview", label: "总览" },
-          { value: "scores", label: "分数提交" },
-        ],
-      },
-      {
-        title: "对局工具",
-        items: [
-          { value: "mappool", label: "图池" },
-          { value: "practice", label: "练图表总览" },
-          { value: "analysis", label: "对手分析" },
-          { value: "banpick", label: "BP记分板" },
-        ],
-      },
-    ];
-
-    if (user?.is_admin) {
-      sections.push({
-        title: "管理",
-        items: [{ value: "admin", label: "管理面板" }],
-      });
-    }
-
-    return sections;
-  }, [user?.is_admin]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -175,6 +187,10 @@ export default function Home() {
     []
   );
 
+  const handleNavToggle = useCallback(() => {
+    setIsNavOpen((prev) => !prev);
+  }, []);
+
   useEffect(() => {
     if (!user) {
       setShowAdminPanel(false);
@@ -188,20 +204,35 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className={styles.layout}>
-        <aside className={styles.sidebar}>
-          <Card appearance="filled" className={styles.sidebarCard}>
-            <div className={styles.brand}>
-              <Title2>OSheetu</Title2>
-              <Body1>加载中...</Body1>
+      <div className={styles.shell}>
+        <NavDrawer
+          open={isNavOpen}
+          type="inline"
+          className={styles.drawer}
+        >
+          <NavDrawerHeader>
+            <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+              <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+            </Tooltip>
+          </NavDrawerHeader>
+          <NavDrawerBody className={styles.drawerBody}>
+            <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
+            <Body1 className={styles.navPlaceholder}>加载中...</Body1>
+          </NavDrawerBody>
+        </NavDrawer>
+        <div className={styles.main}>
+          <div className={styles.mainHeader}>
+            <div className={styles.mainHeaderLeft}>
+              <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+                <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+              </Tooltip>
+              <div className={styles.mainTitleGroup}>
+                <Title2>OSheetu 控制台</Title2>
+                <Body1>请稍候，正在获取会话信息...</Body1>
+              </div>
             </div>
-          </Card>
-        </aside>
-        <main className={styles.main}>
-          <Card className={styles.loadingCard}>
-            <Body1>请稍候，正在获取会话信息...</Body1>
-          </Card>
-        </main>
+          </div>
+        </div>
       </div>
     );
   }
@@ -209,39 +240,71 @@ export default function Home() {
   return (
     <>
       <AuthHandler />
-      <div className={styles.layout}>
-        <aside className={styles.sidebar}>
-          <Card appearance="filled" className={styles.sidebarCard}>
-            <div className={styles.brand}>
-              <Title2>OSheetu</Title2>
-              <Body1>osu! 比赛练图助手</Body1>
-            </div>
-            {user && (
+      <div className={styles.shell}>
+        <NavDrawer
+          open={isNavOpen}
+          onOpenChange={(_, data) => setIsNavOpen(!!data.open)}
+          onNavItemSelect={handleNavSelect}
+          selectedValue={user ? navSelectedValue : undefined}
+          type="inline"
+          className={styles.drawer}
+        >
+          <NavDrawerHeader>
+            <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+              <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+            </Tooltip>
+          </NavDrawerHeader>
+          <NavDrawerBody className={styles.drawerBody}>
+            <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
+            {user ? (
               <div className={styles.userSummary}>
                 <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
-                <div>
+                <div className={styles.userInfo}>
                   <Text weight="semibold">{user.username}</Text>
                   <Caption1>{user.is_admin ? "管理员" : "参赛选手"}</Caption1>
                 </div>
               </div>
+            ) : (
+              <Body1 className={styles.navPlaceholder}>登录后可访问功能导航</Body1>
             )}
+
             {user && (
-              <div className={styles.navSections}>
-                {navSections.map((section) => (
-                  <div key={section.title} className={styles.navSection}>
-                    <Caption1 className={styles.navSectionTitle}>{section.title}</Caption1>
-                    <Nav selectedValue={navSelectedValue} onNavItemSelect={handleNavSelect}>
-                      {section.items.map((item) => (
-                        <NavItem key={item.value} value={item.value}>
-                          {item.label}
-                        </NavItem>
-                      ))}
-                    </Nav>
-                  </div>
-                ))}
+              <div className={styles.navGroup}>
+                <NavSectionHeader>基础功能</NavSectionHeader>
+                <NavItem value="overview" icon={<OverviewIcon />}>
+                  总览
+                </NavItem>
+                <NavItem value="scores" icon={<ScoresIcon />}>
+                  分数提交
+                </NavItem>
+
+                <NavSectionHeader>对局工具</NavSectionHeader>
+                <NavItem value="mappool" icon={<MapPoolIcon />}>
+                  图池
+                </NavItem>
+                <NavItem value="practice" icon={<PracticeIcon />}>
+                  练图表总览
+                </NavItem>
+                <NavItem value="analysis" icon={<AnalysisIcon />}>
+                  对手分析
+                </NavItem>
+                <NavItem value="banpick" icon={<BanPickIcon />}>
+                  BP记分板
+                </NavItem>
+
+                {user.is_admin && (
+                  <>
+                    <NavSectionHeader>管理</NavSectionHeader>
+                    <NavItem value="admin" icon={<AdminIcon />}>
+                      管理面板
+                    </NavItem>
+                  </>
+                )}
               </div>
             )}
-            <div className={styles.actions}>
+
+            <NavDivider />
+            <div className={styles.navActions}>
               {user ? (
                 <Button appearance="secondary" onClick={handleLogout}>
                   登出
@@ -252,17 +315,39 @@ export default function Home() {
                 </Button>
               )}
             </div>
-          </Card>
-        </aside>
-        <main className={styles.main}>
-          {!user ? (
-            <LoginComponent />
-          ) : showAdminPanel && user.is_admin ? (
-            <AdminPanel user={user} />
-          ) : (
-            <Dashboard user={user} selectedTab={selectedTab} />
-          )}
-        </main>
+          </NavDrawerBody>
+        </NavDrawer>
+        <div className={styles.main}>
+          <div className={styles.mainHeader}>
+            <div className={styles.mainHeaderLeft}>
+              <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+                <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+              </Tooltip>
+              <div className={styles.mainTitleGroup}>
+                <Title2>OSheetu 控制台</Title2>
+                <Body1>
+                  {user
+                    ? `欢迎回来，${user.username}`
+                    : "专业的 osu! 比赛组织与练图管理平台"}
+                </Body1>
+              </div>
+            </div>
+            {!user && (
+              <Button appearance="primary" onClick={handleLogin}>
+                使用 OSU! 账号登录
+              </Button>
+            )}
+          </div>
+          <div className={styles.mainContent}>
+            {!user ? (
+              <LoginComponent />
+            ) : showAdminPanel && user.is_admin ? (
+              <AdminPanel user={user} />
+            ) : (
+              <Dashboard user={user} selectedTab={selectedTab} />
+            )}
+          </div>
+        </div>
       </div>
     </>
   );
