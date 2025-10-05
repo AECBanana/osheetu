@@ -54,6 +54,20 @@ body {
   display: none;
 }
 
+scroll-container {
+  overflow: auto;
+  /* 启用滚动功能 */
+  -ms-overflow-style: none;
+  /* IE 和 Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+scroll-container::-webkit-scrollbar {
+  display: none;
+  /* WebKit 浏览器 */
+}
+
 /* Firefox */
 body {
   scrollbar-width: thin;

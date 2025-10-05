@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Card,
     CardHeader,
@@ -74,6 +74,8 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
     const [submitting, setSubmitting] = useState(false);
     const [feedback, setFeedback] = useState<{ intent: "success" | "error"; text: string } | null>(null);
 
+    const lastLoadedTournamentIdRef = useRef<string | null>(null);
+
     const loadData = useCallback(async () => {
         if (!tournament.id) return;
         setLoadingMapPool(true);
@@ -111,8 +113,11 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
     }, [tournament.id]);
 
     useEffect(() => {
-        void loadData();
-    }, []);
+        if (tournament.id && tournament.id !== lastLoadedTournamentIdRef.current) {
+            lastLoadedTournamentIdRef.current = tournament.id;
+            void loadData();
+        }
+    }, [tournament.id, loadData]);
 
     const handleSubmit = async () => {
         if (!selectedMap || !score) {

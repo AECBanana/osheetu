@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
     Card,
     CardHeader,
@@ -92,6 +92,8 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
     const [mapPool, setMapPool] = useState<MapPoolEntry[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const lastLoadedTournamentIdRef = useRef<string | null>(null);
+
     const loadData = useCallback(async () => {
         if (!tournament.id) return;
         setLoading(true);
@@ -124,8 +126,11 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
     }, [tournament.id]);
 
     useEffect(() => {
-        void loadData();
-    }, [loadData]);
+        if (tournament.id && tournament.id !== lastLoadedTournamentIdRef.current) {
+            lastLoadedTournamentIdRef.current = tournament.id;
+            void loadData();
+        }
+    }, [tournament.id, loadData]);
 
     const getModColor = (mod: string) => {
         const colors = {

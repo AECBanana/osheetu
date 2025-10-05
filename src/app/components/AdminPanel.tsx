@@ -435,15 +435,15 @@ export function AdminPanel({ user }: AdminPanelProps) {
             </div>
 
             {selectedTab === "tournaments" && (
-                <div>
+                <div style={{ paddingLeft: "1px" }}>
                     <div className={styles.toolbar}>
                         <div style={{ display: "flex", gap: "12px" }}>
-                        <Button
-                            appearance="primary"
-                            onClick={() => setShowCreateForm(true)}
-                        >
-                            创建新比赛
-                        </Button>
+                            <Button
+                                appearance="primary"
+                                onClick={() => setShowCreateForm(true)}
+                            >
+                                创建新比赛
+                            </Button>
                         </div>
                         <Button
                             appearance="subtle"
@@ -498,143 +498,147 @@ export function AdminPanel({ user }: AdminPanelProps) {
             )}
 
             {selectedTab === "users" && (
-                <Card>
-                    <CardHeader
-                        header={<Title3>用户管理</Title3>}
-                        description="管理用户权限和比赛分组"
-                    />
-                    {usersError && (
-                        <MessageBar intent="error" className={styles.messageBar}>
-                            <MessageBarBody>
-                                <MessageBarTitle>加载失败</MessageBarTitle>
-                                {usersError}
-                            </MessageBarBody>
-                        </MessageBar>
-                    )}
-                    <div className={styles.actionButtons}>
-                        <Button
-                            appearance="subtle"
-                            icon={<ArrowClockwise24Regular />}
-                            onClick={fetchUsers}
-                            disabled={usersLoading}
-                        >
-                            刷新
-                        </Button>
-                    </div>
-                    {usersLoading ? (
-                        <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
-                            <Spinner size="large" label="加载用户列表" />
+                <div style={{ paddingLeft: "1px" }}>
+                    <Card>
+                        <CardHeader
+                            header={<Title3>用户管理</Title3>}
+                            description="管理用户权限和比赛分组"
+                        />
+                        {usersError && (
+                            <MessageBar intent="error" className={styles.messageBar}>
+                                <MessageBarBody>
+                                    <MessageBarTitle>加载失败</MessageBarTitle>
+                                    {usersError}
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
+                        <div className={styles.actionButtons}>
+                            <Button
+                                appearance="subtle"
+                                icon={<ArrowClockwise24Regular />}
+                                onClick={fetchUsers}
+                                disabled={usersLoading}
+                            >
+                                刷新
+                            </Button>
                         </div>
-                    ) : (
-                        <DataGrid
-                            items={users}
-                            columns={userColumns}
-                            getRowId={(item) => item.id}
-                        >
-                            <DataGridHeader>
-                                <DataGridRow>
-                                    {({ renderHeaderCell }) => (
-                                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                                    )}
-                                </DataGridRow>
-                            </DataGridHeader>
-                            <DataGridBody<AdminUser>>
-                                {({ item, rowId }) => (
-                                    <DataGridRow<AdminUser> key={rowId}>
-                                        {({ renderCell }) => (
-                                            <DataGridCell>{renderCell(item)}</DataGridCell>
+                        {usersLoading ? (
+                            <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
+                                <Spinner size="large" label="加载用户列表" />
+                            </div>
+                        ) : (
+                            <DataGrid
+                                items={users}
+                                columns={userColumns}
+                                getRowId={(item) => item.id}
+                            >
+                                <DataGridHeader>
+                                    <DataGridRow>
+                                        {({ renderHeaderCell }) => (
+                                            <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
                                         )}
                                     </DataGridRow>
-                                )}
-                            </DataGridBody>
-                        </DataGrid>
-                    )}
-                </Card>
+                                </DataGridHeader>
+                                <DataGridBody<AdminUser>>
+                                    {({ item, rowId }) => (
+                                        <DataGridRow<AdminUser> key={rowId}>
+                                            {({ renderCell }) => (
+                                                <DataGridCell>{renderCell(item)}</DataGridCell>
+                                            )}
+                                        </DataGridRow>
+                                    )}
+                                </DataGridBody>
+                            </DataGrid>
+                        )}
+                    </Card>
+                </div>
             )}
 
             {selectedTab === "system" && (
-                <Card>
-                    <CardHeader
-                        header={<Title3>系统设置</Title3>}
-                        description="配置系统参数和 OSU API 设置"
-                    />
-                    {systemError && (
-                        <MessageBar intent="error" className={styles.messageBar}>
-                            <MessageBarBody>
-                                <MessageBarTitle>加载失败</MessageBarTitle>
-                                {systemError}
-                            </MessageBarBody>
-                        </MessageBar>
-                    )}
-                    <div className={styles.actionButtons}>
-                        <Button
-                            appearance="subtle"
-                            icon={<ArrowClockwise24Regular />}
-                            onClick={fetchSystemInfo}
-                            disabled={systemLoading}
-                        >
-                            刷新
-                        </Button>
-                    </div>
-                    {systemLoading ? (
-                        <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
-                            <Spinner size="large" label="加载系统信息" />
+                <div style={{ paddingLeft: "1px" }}>
+                    <Card>
+                        <CardHeader
+                            header={<Title3>系统设置</Title3>}
+                            description="配置系统参数和 OSU API 设置"
+                        />
+                        {systemError && (
+                            <MessageBar intent="error" className={styles.messageBar}>
+                                <MessageBarBody>
+                                    <MessageBarTitle>加载失败</MessageBarTitle>
+                                    {systemError}
+                                </MessageBarBody>
+                            </MessageBar>
+                        )}
+                        <div className={styles.actionButtons}>
+                            <Button
+                                appearance="subtle"
+                                icon={<ArrowClockwise24Regular />}
+                                onClick={fetchSystemInfo}
+                                disabled={systemLoading}
+                            >
+                                刷新
+                            </Button>
                         </div>
-                    ) : systemInfo ? (
-                        <div>
-                            <div className={styles.envGrid}>
-                                <div className={styles.envCard}>
-                                    <div className={styles.gridTitle}>
-                                        <Text weight="semibold">运行环境</Text>
-                                        <Badge appearance="filled" color={systemInfo.environment.isProduction ? "brand" : "success"}>
-                                            {systemInfo.environment.isProduction ? "Production" : "Development"}
-                                        </Badge>
+                        {systemLoading ? (
+                            <div style={{ display: "flex", justifyContent: "center", padding: "24px" }}>
+                                <Spinner size="large" label="加载系统信息" />
+                            </div>
+                        ) : systemInfo ? (
+                            <div>
+                                <div className={styles.envGrid}>
+                                    <div className={styles.envCard}>
+                                        <div className={styles.gridTitle}>
+                                            <Text weight="semibold">运行环境</Text>
+                                            <Badge appearance="filled" color={systemInfo.environment.isProduction ? "brand" : "success"}>
+                                                {systemInfo.environment.isProduction ? "Production" : "Development"}
+                                            </Badge>
+                                        </div>
+                                        <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                            部署平台: {systemInfo.environment.isVercel ? "Vercel" : "自托管"}
+                                        </Text>
+                                        <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
+                                            更新时间: {new Date(systemInfo.timestamp).toLocaleString()}
+                                        </Text>
                                     </div>
-                                    <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
-                                        部署平台: {systemInfo.environment.isVercel ? "Vercel" : "自托管"}
-                                    </Text>
-                                    <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>
-                                        更新时间: {new Date(systemInfo.timestamp).toLocaleString()}
-                                    </Text>
+                                    <div className={styles.envCard}>
+                                        <Text weight="semibold">OSU 登录配置</Text>
+                                        <Badge appearance="filled" color={systemInfo.featureChecks.osuLogin.isConfigured ? "success" : "danger"}>
+                                            {systemInfo.featureChecks.osuLogin.isConfigured ? "已配置" : "缺失配置"}
+                                        </Badge>
+                                        {systemInfo.featureChecks.osuLogin.issues.map((issue: string) => (
+                                            <Text key={issue} size={200} style={{ color: "var(--colorPaletteRedForeground2)" }}>
+                                                • {issue}
+                                            </Text>
+                                        ))}
+                                    </div>
+                                    <div className={styles.envCard}>
+                                        <Text weight="semibold">NextAuth 配置</Text>
+                                        <Badge appearance="filled" color={systemInfo.featureChecks.nextAuth.isConfigured ? "success" : "danger"}>
+                                            {systemInfo.featureChecks.nextAuth.isConfigured ? "已配置" : "缺失配置"}
+                                        </Badge>
+                                        {systemInfo.featureChecks.nextAuth.issues.map((issue: string) => (
+                                            <Text key={issue} size={200} style={{ color: "var(--colorPaletteRedForeground2)" }}>
+                                                • {issue}
+                                            </Text>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className={styles.envCard}>
-                                    <Text weight="semibold">OSU 登录配置</Text>
-                                    <Badge appearance="filled" color={systemInfo.featureChecks.osuLogin.isConfigured ? "success" : "danger"}>
-                                        {systemInfo.featureChecks.osuLogin.isConfigured ? "已配置" : "缺失配置"}
-                                    </Badge>
-                                    {systemInfo.featureChecks.osuLogin.issues.map((issue: string) => (
-                                        <Text key={issue} size={200} style={{ color: "var(--colorPaletteRedForeground2)" }}>
-                                            • {issue}
-                                        </Text>
-                                    ))}
-                                </div>
-                                <div className={styles.envCard}>
-                                    <Text weight="semibold">NextAuth 配置</Text>
-                                    <Badge appearance="filled" color={systemInfo.featureChecks.nextAuth.isConfigured ? "success" : "danger"}>
-                                        {systemInfo.featureChecks.nextAuth.isConfigured ? "已配置" : "缺失配置"}
-                                    </Badge>
-                                    {systemInfo.featureChecks.nextAuth.issues.map((issue: string) => (
-                                        <Text key={issue} size={200} style={{ color: "var(--colorPaletteRedForeground2)" }}>
-                                            • {issue}
-                                        </Text>
-                                    ))}
+                                <div style={{ padding: "16px" }}>
+                                    <Title3>建议</Title3>
+                                    <ul>
+                                        {systemInfo.recommendations.map((item: string) => (
+                                            <li key={item}>
+                                                <Text size={200}>{item}</Text>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
                             </div>
-                            <div style={{ padding: "16px" }}>
-                                <Title3>建议</Title3>
-                                <ul>
-                                    {systemInfo.recommendations.map((item: string) => (
-                                        <li key={item}>
-                                            <Text size={200}>{item}</Text>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-                    ) : (
-                        <Body1 style={{ padding: "16px" }}>暂无系统信息，请刷新重试。</Body1>
-                    )}
-                </Card>
+                        ) : (
+                            <Body1 style={{ padding: "16px" }}>暂无系统信息，请刷新重试。</Body1>
+                        )}
+                    </Card>
+                </div>
             )}
         </div>
     );
