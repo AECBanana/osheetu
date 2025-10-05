@@ -1,9 +1,0 @@
-node_modules/
-.live-server.json
-*.pem
-.vscode/
-.vercel
-biome.json
-dist/
-*.lock
-package-lock.json

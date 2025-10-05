@@ -22,7 +22,7 @@ export default function BeatmapViewerPage({ params }: BeatmapViewerPageProps) {
     return (
         <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
             <iframe
-                src={`/beatmap-viewer/index.html?b=${beatmapId}`}
+                src={`/dist/index.html?b=${beatmapId}`}
                 style={{
                     width: '100%',
                     height: '100%',
