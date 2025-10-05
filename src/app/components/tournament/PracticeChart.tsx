@@ -252,7 +252,7 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
 
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "20px" }}>
                             {teamOverviewData.map((data) => (
-                                <Card key={data.mod} style={{ padding: "16px" }}>
+                                <Card key={data.mod} style={{ padding: "16px", position: "relative" }}>
                                     <CardHeader
                                         header={
                                             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
@@ -264,21 +264,40 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                                         }
                                     />
 
-                                    <div style={{ display: "grid", gap: "12px" }}>
-                                        <div>
-                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>平均分</Text>
-                                            <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#0078d4" }}>
-                                                {data.averageScore.toLocaleString()}
-                                            </Text>
+                                    {/* 完成情况百分比 - 右上角 */}
+                                    <div style={{
+                                        position: "absolute",
+                                        top: "16px",
+                                        right: "16px",
+                                        backgroundColor: "#0078d4",
+                                        color: "white",
+                                        padding: "4px 8px",
+                                        borderRadius: "12px",
+                                        fontSize: "14px",
+                                        fontWeight: "bold"
+                                    }}>
+                                        {data.completionRate}%
+                                    </div>
+
+                                    <div style={{ display: "grid", gap: "16px" }}>
+                                        {/* 平均分和最高分在同一行 */}
+                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                            <div>
+                                                <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>平均分</Text>
+                                                <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#0078d4" }}>
+                                                    {data.averageScore.toLocaleString()}
+                                                </Text>
+                                            </div>
+
+                                            <div>
+                                                <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>最高分</Text>
+                                                <Text style={{ fontSize: "20px", fontWeight: "bold" }}>
+                                                    {data.highestScore.toLocaleString()}
+                                                </Text>
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>最高分</Text>
-                                            <Text style={{ fontSize: "20px", fontWeight: "bold" }}>
-                                                {data.highestScore.toLocaleString()}
-                                            </Text>
-                                        </div>
-
+                                        {/* 最高分成员 */}
                                         <div>
                                             <Text weight="semibold" style={{ display: "block", marginBottom: "8px" }}>最高分成员</Text>
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
@@ -296,13 +315,6 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                                                     );
                                                 })}
                                             </div>
-                                        </div>
-
-                                        <div>
-                                            <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>完成情况</Text>
-                                            <Text>
-                                                {data.completionRate}% ({data.totalScores}/{data.totalMaps * activeParticipants.length})
-                                            </Text>
                                         </div>
                                     </div>
                                 </Card>
