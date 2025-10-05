@@ -101,7 +101,17 @@ interface OverviewData {
             total_scores: number;
             avg_score: number;
             best_score: number;
+            min_score: number;
             maps_played: number;
+            ss_count: number;
+            s_count: number;
+            a_count: number;
+            rank: number | null;
+        };
+        activity_stats: {
+            today_scores: number;
+            week_scores: number;
+            last_activity: string | null;
         };
         team_stats: {
             team_members: number;
@@ -110,9 +120,12 @@ interface OverviewData {
         } | null;
         recent_scores: Array<{
             score: number;
+            accuracy: number;
             timestamp: string;
             player: string;
             map_title: string;
+            difficulty: string;
+            mod_value: string;
         }>;
     };
 }
@@ -189,31 +202,50 @@ export function Overview({ tournament, user }: OverviewProps) {
                 total_scores: 45,
                 avg_score: 875432,
                 best_score: 1250000,
-                maps_played: 16
+                min_score: 650000,
+                maps_played: 16,
+                ss_count: 8,
+                s_count: 12,
+                a_count: 15,
+                rank: 3
+            },
+            activity_stats: {
+                today_scores: 3,
+                week_scores: 18,
+                last_activity: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
             },
             team_stats: tournament.type === "team" ? {
                 team_members: 4,
                 team_avg_score: 850000,
-                team_rank: 3
+                team_rank: 2
             } : null,
             recent_scores: [
                 {
                     score: 950000,
-                    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30分钟前
+                    accuracy: 98.5,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
                     player: user.username,
-                    map_title: "Example Map [Hard]"
+                    map_title: "Example Map",
+                    difficulty: "Hard",
+                    mod_value: "NM"
                 },
                 {
                     score: 880000,
-                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2小时前
+                    accuracy: 95.2,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
                     player: user.username,
-                    map_title: "Another Map [Normal]"
+                    map_title: "Another Map",
+                    difficulty: "Normal",
+                    mod_value: "HD"
                 },
                 {
                     score: 1200000,
-                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1天前
+                    accuracy: 99.8,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
                     player: user.username,
-                    map_title: "Difficult Map [Expert]"
+                    map_title: "Difficult Map",
+                    difficulty: "Expert",
+                    mod_value: "HR"
                 }
             ]
         }
@@ -276,14 +308,50 @@ export function Overview({ tournament, user }: OverviewProps) {
             <Card className={styles.statCard}>
                 <CardHeader
                     header={<Title3>个人统计</Title3>}
-                    description="分数统计"
+                    description="分数统计和排名"
                 />
                 <div className={styles.statValue}>{stats.personal_stats.avg_score.toLocaleString()}</div>
                 <Text>平均分数</Text>
-                <div style={{ marginTop: "8px" }}>
+                <div style={{ marginTop: "8px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
                     <Badge appearance="filled" color="success">
                         最高分: {stats.personal_stats.best_score.toLocaleString()}
                     </Badge>
+                    {stats.personal_stats.rank && (
+                        <Badge appearance="outline">
+                            排名 #{stats.personal_stats.rank}
+                        </Badge>
+                    )}
+                </div>
+                <div style={{ marginTop: "8px", display: "flex", gap: "4px", flexWrap: "wrap" }}>
+                    <Badge appearance="filled" color="brand">SS: {stats.personal_stats.ss_count}</Badge>
+                    <Badge appearance="filled" color="success">S: {stats.personal_stats.s_count}</Badge>
+                    <Badge appearance="filled" color="warning">A: {stats.personal_stats.a_count}</Badge>
+                </div>
+            </Card>
+
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>活动统计</Title3>}
+                    description="最近练习情况"
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>
+                        <div className={styles.statValue}>{stats.activity_stats.today_scores}</div>
+                        <Text>今日分数</Text>
+                    </div>
+                    <div>
+                        <div style={{ fontSize: "24px", fontWeight: "bold", color: tokens.colorBrandForeground1 }}>
+                            {stats.activity_stats.week_scores}
+                        </div>
+                        <Text>本周分数</Text>
+                    </div>
+                    {stats.activity_stats.last_activity && (
+                        <div style={{ marginTop: "8px" }}>
+                            <Text style={{ fontSize: "12px", color: tokens.colorNeutralForeground3 }}>
+                                最后活动: {new Date(stats.activity_stats.last_activity).toLocaleString()}
+                            </Text>
+                        </div>
+                    )}
                 </div>
             </Card>
 
@@ -310,19 +378,24 @@ export function Overview({ tournament, user }: OverviewProps) {
                 />
                 {stats.recent_scores.length > 0 ? (
                     <div>
-                        {stats.recent_scores.map((score, index) => (
+                        {stats.recent_scores.slice(0, 5).map((score, index) => (
                             <div key={index} className={styles.scoreItem}>
-                                <div>
+                                <div style={{ flex: 1 }}>
                                     <div className={styles.scoreValue}>
                                         {score.score.toLocaleString()}
                                     </div>
                                     <div className={styles.scoreMap}>
-                                        {score.map_title}
+                                        {score.map_title} [{score.difficulty}] {score.mod_value}
+                                    </div>
+                                    <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                                        <Text style={{ fontSize: "11px", color: tokens.colorNeutralForeground3 }}>
+                                            准确率: {score.accuracy}%
+                                        </Text>
+                                        <Text style={{ fontSize: "11px", color: tokens.colorNeutralForeground3 }}>
+                                            {new Date(score.timestamp).toLocaleDateString()}
+                                        </Text>
                                     </div>
                                 </div>
-                                <Text style={{ fontSize: "12px", color: tokens.colorNeutralForeground3 }}>
-                                    {new Date(score.timestamp).toLocaleDateString()}
-                                </Text>
                             </div>
                         ))}
                     </div>
