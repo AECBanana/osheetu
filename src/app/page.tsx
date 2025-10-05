@@ -197,6 +197,20 @@ export default function Home() {
   const [isNavOpen, setIsNavOpen] = useState(true);
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
   const loading = status === "loading";
+
+  // 检测是否为移动端设备
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   const mainClassName = mergeClasses(
     styles.mainBase,
     isNavOpen ? styles.mainConstrained : styles.mainExpanded
@@ -314,7 +328,7 @@ export default function Home() {
       <div className={mergeClasses(styles.shell, !isNavOpen && styles.shellCollapsed)}>
         <NavDrawer
           open={isNavOpen}
-          type="inline"
+          type={isMobile ? "overlay" : "inline"}
           className={styles.drawer}
         >
           <NavDrawerHeader>
@@ -353,7 +367,7 @@ export default function Home() {
           onOpenChange={(_, data) => setIsNavOpen(!!data.open)}
           onNavItemSelect={handleNavSelect}
           selectedValue={user ? navSelectedValue : undefined}
-          type="inline"
+          type={isMobile ? "overlay" : "inline"}
           className={styles.drawer}
         >
           <NavDrawerHeader>
