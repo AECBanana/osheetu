@@ -147,7 +147,7 @@ export const useUserSession = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         const currentUser = await getCurrentUser();
         setUser(currentUser as User | null);
       } catch (err) {
@@ -161,10 +161,10 @@ export const useUserSession = () => {
     // 初始加载
     loadUserSession();
 
-    // 可以在这里设置定时器定期刷新用户会话
-    const interval = setInterval(loadUserSession, 60000); // 每分钟刷新一次
+    // 注释掉自动刷新功能，避免频繁的数据获取
+    // const interval = setInterval(loadUserSession, 60000); // 每分钟刷新一次
 
-    return () => clearInterval(interval);
+    // return () => clearInterval(interval);
   }, []);
 
   // 手动刷新会话
@@ -172,7 +172,7 @@ export const useUserSession = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const currentUser = await getCurrentUser();
       setUser(currentUser as User | null);
       return true;
