@@ -381,7 +381,7 @@ export default function Home() {
             <div className={styles.drawerHeaderArea}>
               {user ? (
                 <div className={styles.userSummary}>
-                  <img src={user.avatar_url} alt={user.username} className={styles.avatar} />
+                  <img src={`/api/ppy?url=${encodeURIComponent(user.avatar_url)}`} alt={user.username} className={styles.avatar} />
                   <div className={styles.userInfo}>
                     <Text weight="semibold">{user.username}</Text>
                     <Caption1>{user.is_admin ? "管理员" : "参赛选手"}</Caption1>
