@@ -47,26 +47,30 @@ const colorSchemes = {
 const createCustomTheme = (baseTheme: Theme, colorScheme: ColorScheme): Theme => {
   const colors = colorSchemes[colorScheme];
 
-  // 复制基础主题
-  const customTheme = { ...baseTheme };
+  // 创建BrandVariants对象 - 使用更完整的变体
+  const brandVariants: BrandVariants = {
+    10: colors.primary,
+    20: colors.light,
+    30: colors.primary,
+    40: colors.primary,
+    50: colors.primary,
+    60: colors.primary,
+    70: colors.primary,
+    80: colors.primary,
+    90: colors.primary,
+    100: colors.primary,
+    110: colors.primary,
+    120: colors.primary,
+    130: colors.primary,
+    140: colors.primary,
+    150: colors.primary,
+    160: colors.primary,
+  };
 
-  // 修改主要的品牌颜色 - 这些是按钮、链接等组件使用的主要颜色
-  customTheme.colorBrandBackground = colors.primary;
-  customTheme.colorBrandBackgroundHover = colors.light;
-  customTheme.colorBrandBackgroundPressed = colors.dark;
-  customTheme.colorBrandForeground1 = colors.primary;
-  customTheme.colorBrandForeground2 = colors.primary;
-  customTheme.colorBrandForegroundLink = colors.primary;
-  customTheme.colorBrandForegroundLinkHover = colors.light;
-  customTheme.colorBrandForegroundLinkPressed = colors.dark;
-
-  // 修改品牌边框颜色
-  customTheme.colorBrandStroke1 = colors.primary;
-  customTheme.colorBrandStroke2 = colors.light;
-
-  // 修改复合品牌颜色（用于特殊组件）
-  customTheme.colorCompoundBrandBackground = colors.primary;
-  customTheme.colorCompoundBrandForeground1 = colors.primary;
+  // 使用FluentUI的createLightTheme或createDarkTheme来创建完整的自定义主题
+  const customTheme = baseTheme === webLightTheme
+    ? createLightTheme(brandVariants)
+    : createDarkTheme(brandVariants);
 
   return customTheme;
 };
