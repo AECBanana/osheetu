@@ -2,26 +2,72 @@
 <html lang="en">
 
 <head>
-    <title>{{ title }}</title>
+    <title>osu! Web Beatmap Viewer</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta property="og:site_name" content="JoSu! | osu! Beatmap Viewer">
-    <meta property="og:title" content="{{ title }}">
+    <meta property="og:title" content="osu! Web Beatmap Viewer">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://preview.tryz.id.vn">
-    <meta property="og:description" content="{{ description }}">
-    <meta property="og:image" content="{{ image }}">
-    <link rel="shortcut icon" type="image/x-icon" href="/assets/favicon-ChcRsakt.ico">
+    <meta property="og:url" content="">
+    <meta property="og:description" content="Play osu! beatmaps in your browser">
+    <meta property="og:image" content="">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="./styles/styles.css">
+    <link rel="stylesheet" href="./styles/sidePanel.css">
+    <link rel="stylesheet" href="./styles/mobile.css">
 
-    <script src="/lib/buffer.js"></script>
-    <script src="/lib/Vibrant.min.js"></script>
-    <script src="/lib/zip-fs-full.js"></script>
+    <script src="./lib/buffer.js"></script>
+    <script src="./lib/Vibrant.min.js"></script>
+    <script src="./lib/zip-fs-full.js"></script>
     <script src="/lib/lzma_worker.js"></script>
     <script src="/lib/kali.min.js" />
 
-    <script src="./lib/osujs.js" type="module"></script>
-  <script type="module" crossorigin src="/assets/index-oASneL5v.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DqYarYnB.css">
+    <script src="./lib/osujs.js" type="module"></script>
+    <script src="./lib/leb128.js" type="module"></script>
+    <script src="./lib/osr-parser.js" type="module"></script>
+    <script src="./scripts/GlobalVariables.js" type="module"></script>
+    <script src="./scripts/Database.js" type="module"></script>
+    <script src="./scripts/Skinning.js" type="module"></script>
+    <script src="./scripts/Texture.js" type="module"></script>
+    <script src="./scripts/Cursor.js" type="module"></script>
+    <script src="./scripts/Progress.js" type="module"></script>
+    <script src="./scripts/Timestamp.js" type="module"></script>
+    <script src="./scripts/Game.js" type="module"></script>
+    <script src="./scripts/Audio.js" type="module"></script>
+    <script src="./scripts/HitSound.js" type="module"></script>
+    <script src="./scripts/Judgement.js" type="module"></script>
+    <script src="./scripts/HitObjects/ApproachCircle.js" type="module"></script>
+    <script src="./scripts/HitObjects/NumberSprite.js" type="module"></script>
+    <script src="./scripts/HitObjects/HitCircle.js" type="module"></script>
+    <script src="./scripts/HitObjects/ReverseArrow.js" type="module"></script>
+    <script src="./scripts/HitObjects/SliderBall.js" type="module"></script>
+    <script src="./scripts/HitObjects/SliderTick.js" type="module"></script>
+    <script src="./scripts/HitObjects/SliderEnd.js" type="module"></script>
+    <script src="./scripts/HitObjects/Slider.js" type="module"></script>
+    <script src="./scripts/HitObjects/Spinner.js" type="module"></script>
+    <script src="./scripts/HitObjects/SliderMesh.js" type="module"></script>
+    <script src="./scripts/HitObjects/ObjectsController.js" type="module"></script>
+    <script src="./scripts/Beatmap.js" type="module"></script>
+    <script src="./scripts/BeatmapFile.js" type="module"></script>
+    <script src="./scripts/ScoreParser.js" type="module"></script>
+    <script src="./scripts/Utils.js" type="module"></script>
+    <script src="./scripts/Timeline/Timeline.js" type="module"></script>
+    <script src="./scripts/Timeline/DragWindow.js" type="module"></script>
+    <script src="./scripts/Timeline/BeatLines.js" type="module"></script>
+    <script src="./scripts/Timeline/HitCircle.js" type="module"></script>
+    <script src="./scripts/Timeline/NumberSprite.js" type="module"></script>
+    <script src="./scripts/Timeline/ReverseArrow.js" type="module"></script>
+    <script src="./scripts/Timeline/Slider.js" type="module"></script>
+    <script src="./index.js" type="module" defer></script>
+    <script src="./scripts/DragWindow.js" type="module" defer></script>
+    <script src="./scripts/Settings.js" type="module" defer></script>
+    <script src="./scripts/DragDrop.js" type="module" defer></script>
+    <script src="./scripts/InputBar.js" type="module" defer></script>
+    <script src="./scripts/ProgressBar.js" type="module" defer></script>
+    <script src="./scripts/TimingPanel.js" type="module" defer></script>
+    <script src="./scripts/Notification.js" type="module" defer></script>
+    <script src="./scripts/SidePanel.js" type="module" defer></script>
+    <script src="./scripts/Record.js" type="module" defer></script>
 </head>
 
 <body>

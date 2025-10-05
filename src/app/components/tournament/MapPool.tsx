@@ -576,7 +576,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
     }, []);
 
     const handlePreviewBeatmap = useCallback((beatmap: MapEntry) => {
-        const url = `/beatmap-viewer/?b=${beatmap.beatmap_id}`;
+        const url = `/beatmap-viewer/${beatmap.beatmap_id}`;
         window.open(url, '_blank', 'noopener,noreferrer');
     }, []);
 
