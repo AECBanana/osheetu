@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import {
     Card,
     CardHeader,
@@ -11,10 +11,6 @@ import {
     ProgressBar,
     makeStyles,
     tokens,
-    Select,
-    Field,
-    Button,
-    MessageBar,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -30,18 +26,6 @@ const useStyles = makeStyles({
         fontSize: "32px",
         fontWeight: "bold",
         color: tokens.colorBrandForeground1,
-    },
-    stageSelector: {
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        marginBottom: "24px",
-        padding: "16px",
-        backgroundColor: tokens.colorNeutralBackground3,
-        borderRadius: "8px",
-    },
-    stageSelect: {
-        minWidth: "200px",
     },
 });
 
@@ -74,41 +58,6 @@ interface OverviewProps {
 export function Overview({ tournament, user }: OverviewProps) {
     const styles = useStyles();
 
-    const [selectedStage, setSelectedStage] = useState<string>(tournament.current_stage);
-    const [isUpdatingStage, setIsUpdatingStage] = useState(false);
-    const [updateMessage, setUpdateMessage] = useState<string>('');
-
-    const handleStageUpdate = async () => {
-        if (selectedStage === tournament.current_stage) return;
-
-        setIsUpdatingStage(true);
-        setUpdateMessage('');
-
-        try {
-            const response = await fetch(`/api/tournaments/${tournament.id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    current_stage: selectedStage,
-                }),
-            });
-
-            if (response.ok) {
-                setUpdateMessage('阶段更新成功！');
-                // 刷新页面或更新状态
-                window.location.reload();
-            } else {
-                setUpdateMessage('阶段更新失败，请重试。');
-            }
-        } catch (error) {
-            setUpdateMessage('网络错误，请重试。');
-        } finally {
-            setIsUpdatingStage(false);
-        }
-    };
-
     // 模拟统计数据
     const stats = {
         totalMaps: 24,
@@ -119,98 +68,65 @@ export function Overview({ tournament, user }: OverviewProps) {
     };
 
     return (
-        <>
-            {tournament.participant?.role === 'captain' && (
-                <div className={styles.stageSelector}>
-                    <Field label="当前阶段">
-                        <Select
-                            className={styles.stageSelect}
-                            value={selectedStage}
-                            onChange={(e, data) => setSelectedStage(data.value)}
-                        >
-                            {tournament.stages.map((stage) => (
-                                <option key={stage} value={stage}>
-                                    {stage.toUpperCase()}
-                                </option>
-                            ))}
-                        </Select>
-                    </Field>
-                    <Button
-                        appearance="primary"
-                        onClick={handleStageUpdate}
-                        disabled={isUpdatingStage || selectedStage === tournament.current_stage}
-                    >
-                        {isUpdatingStage ? '更新中...' : '更新阶段'}
-                    </Button>
-                </div>
+        <div className={styles.overviewGrid}>
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>比赛进度</Title3>}
+                    description="当前阶段完成情况"
+                />
+                <div className={styles.statValue}>{tournament.current_stage.toUpperCase()}</div>
+                <ProgressBar value={65} style={{ marginTop: "12px" }} />
+                <Text style={{ marginTop: "8px" }}>65% 完成</Text>
+            </Card>
+
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>图池信息</Title3>}
+                    description="当前阶段图池"
+                />
+                <div className={styles.statValue}>{stats.totalMaps}</div>
+                <Text>总图数</Text>
+            </Card>
+
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>练习进度</Title3>}
+                    description="个人练习完成度"
+                />
+                <div className={styles.statValue}>{stats.practiceProgress}%</div>
+                <ProgressBar value={stats.practiceProgress} style={{ marginTop: "12px" }} />
+            </Card>
+
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>平均分数</Title3>}
+                    description="最近10局平均"
+                />
+                <div className={styles.statValue}>{stats.averageScore.toLocaleString()}</div>
+                <Badge appearance="filled" color="success">
+                    排名 #{stats.rank}
+                </Badge>
+            </Card>
+
+            {tournament.type === "team" && (
+                <Card className={styles.statCard}>
+                    <CardHeader
+                        header={<Title3>团队信息</Title3>}
+                        description="团队成员状态"
+                    />
+                    <div className={styles.statValue}>{stats.teamMembers}</div>
+                    <Text>活跃成员</Text>
+                </Card>
             )}
 
-            {updateMessage && (
-                <MessageBar intent={updateMessage.includes('成功') ? 'success' : 'error'}>
-                    {updateMessage}
-                </MessageBar>
-            )}
-
-            <div className={styles.overviewGrid}>
-                <Card className={styles.statCard}>
-                    <CardHeader
-                        header={<Title3>比赛进度</Title3>}
-                        description="当前阶段完成情况"
-                    />
-                    <div className={styles.statValue}>{tournament.current_stage.toUpperCase()}</div>
-                    <ProgressBar value={65} style={{ marginTop: "12px" }} />
-                    <Text style={{ marginTop: "8px" }}>65% 完成</Text>
-                </Card>
-
-                <Card className={styles.statCard}>
-                    <CardHeader
-                        header={<Title3>图池信息</Title3>}
-                        description="当前阶段图池"
-                    />
-                    <div className={styles.statValue}>{stats.totalMaps}</div>
-                    <Text>总图数</Text>
-                </Card>
-
-                <Card className={styles.statCard}>
-                    <CardHeader
-                        header={<Title3>练习进度</Title3>}
-                        description="个人练习完成度"
-                    />
-                    <div className={styles.statValue}>{stats.practiceProgress}%</div>
-                    <ProgressBar value={stats.practiceProgress} style={{ marginTop: "12px" }} />
-                </Card>
-
-                <Card className={styles.statCard}>
-                    <CardHeader
-                        header={<Title3>平均分数</Title3>}
-                        description="最近10局平均"
-                    />
-                    <div className={styles.statValue}>{stats.averageScore.toLocaleString()}</div>
-                    <Badge appearance="filled" color="success">
-                        排名 #{stats.rank}
-                    </Badge>
-                </Card>
-
-                {tournament.type === "team" && (
-                    <Card className={styles.statCard}>
-                        <CardHeader
-                            header={<Title3>团队信息</Title3>}
-                            description="团队成员状态"
-                        />
-                        <div className={styles.statValue}>{stats.teamMembers}</div>
-                        <Text>活跃成员</Text>
-                    </Card>
-                )}
-
-                <Card className={styles.statCard}>
-                    <CardHeader
-                        header={<Title3>下次比赛</Title3>}
-                        description="即将进行的比赛"
-                    />
-                    <Text weight="semibold">2025-09-30 20:00</Text>
-                    <Text style={{ display: "block", marginTop: "4px" }}>vs Team Alpha</Text>
-                </Card>
-            </div>
-        </>
+            <Card className={styles.statCard}>
+                <CardHeader
+                    header={<Title3>下次比赛</Title3>}
+                    description="即将进行的比赛"
+                />
+                <Text weight="semibold">2025-09-30 20:00</Text>
+                <Text style={{ display: "block", marginTop: "4px" }}>vs Team Alpha</Text>
+            </Card>
+        </div>
     );
 }

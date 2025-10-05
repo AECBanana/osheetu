@@ -97,6 +97,7 @@ const useStyles = makeStyles({
     alignItems: "center",
     gap: "12px",
     padding: "0 4px",
+    marginTop: "8px",
   },
   avatar: {
     width: "40px",
@@ -119,6 +120,7 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "8px",
     padding: "0 4px",
+    marginTop: "auto",
   },
   navFooter: {
     marginTop: "auto",
