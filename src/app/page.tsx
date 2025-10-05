@@ -474,7 +474,7 @@ export default function Home() {
             ) : showAdminPanel && user.is_admin ? (
               <AdminPanel user={user} />
             ) : showSettings ? (
-              <Settings />
+              <Settings user={user} />
             ) : (
               <Dashboard
                 user={user}

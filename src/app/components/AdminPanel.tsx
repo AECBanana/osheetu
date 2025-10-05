@@ -39,6 +39,7 @@ const useStyles = makeStyles({
         display: "flex",
         flexDirection: "column",
         gap: "24px",
+        paddingLeft: "1px",
     },
     tabContainer: {
         marginBottom: "24px",
@@ -435,7 +436,7 @@ export function AdminPanel({ user }: AdminPanelProps) {
             </div>
 
             {selectedTab === "tournaments" && (
-                <div style={{ paddingLeft: "1px" }}>
+                <div>
                     <div className={styles.toolbar}>
                         <div style={{ display: "flex", gap: "12px" }}>
                             <Button
@@ -498,7 +499,7 @@ export function AdminPanel({ user }: AdminPanelProps) {
             )}
 
             {selectedTab === "users" && (
-                <div style={{ paddingLeft: "1px" }}>
+                <div>
                     <Card>
                         <CardHeader
                             header={<Title3>用户管理</Title3>}
@@ -555,7 +556,7 @@ export function AdminPanel({ user }: AdminPanelProps) {
             )}
 
             {selectedTab === "system" && (
-                <div style={{ paddingLeft: "1px" }}>
+                <div>
                     <Card>
                         <CardHeader
                             header={<Title3>系统设置</Title3>}

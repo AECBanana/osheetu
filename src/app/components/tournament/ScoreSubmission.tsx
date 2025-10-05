@@ -31,12 +31,22 @@ const useStyles = makeStyles({
         gap: "12px",
         alignItems: "end",
         marginBottom: "16px",
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "16px",
+        },
     },
     scoreHistory: {
         marginTop: "24px",
     },
     fullWidthField: {
         gridColumn: "1 / -1",
+    },
+    submitButton: {
+        "@media (max-width: 768px)": {
+            width: "100%",
+            justifySelf: "stretch",
+        },
     },
 });
 
@@ -245,10 +255,15 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
                             }}
                             placeholder="输入分数 (支持数字加w格式，如12w为12万分数)"
                             disabled={submitting}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleSubmit();
+                                }
+                            }}
                         />
                     </Field>
 
-                    <Button appearance="primary" onClick={handleSubmit} disabled={submitting || loadingMapPool}>
+                    <Button appearance="primary" onClick={handleSubmit} disabled={submitting || loadingMapPool} className={styles.submitButton}>
                         {submitting ? "提交中..." : "提交分数"}
                     </Button>
                 </div>

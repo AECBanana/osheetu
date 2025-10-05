@@ -16,6 +16,11 @@ import { useCallback, useState } from "react";
 import { logout } from "@/utils/auth";
 import { useTheme } from "@/app/providers/AppThemeProvider";
 import { useAuthorizedTournaments } from "@/utils/hooks";
+import type { User } from "@/utils/auth";
+
+interface SettingsProps {
+  user: User;
+}
 
 const useStyles = makeStyles({
   root: {
@@ -23,6 +28,7 @@ const useStyles = makeStyles({
     flexDirection: "column",
     gap: "20px",
     maxWidth: "600px",
+    paddingLeft: "1px",
   },
   card: {
     padding: "16px",
@@ -48,15 +54,18 @@ const useStyles = makeStyles({
   },
 });
 
-export function Settings() {
+export function Settings({ user }: SettingsProps) {
   const styles = useStyles();
   const { theme, toggleTheme } = useTheme();
-  const { tournaments } = useAuthorizedTournaments(null); // 获取所有比赛数据
+  const { tournaments } = useAuthorizedTournaments(user); // 获取用户相关的比赛数据
 
   const [selectedTournament, setSelectedTournament] = useState<string>('');
   const [selectedStage, setSelectedStage] = useState<string>('');
   const [isUpdatingStage, setIsUpdatingStage] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<string>('');
+
+  // 检查用户是否有权限管理比赛阶段（队长或管理员）
+  const canManageStages = user.is_admin || tournaments.some(t => t.participant.role === 'captain');
 
   // 找到当前选中的比赛
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
@@ -126,8 +135,8 @@ export function Settings() {
 
       </Card>
 
-      {/* 比赛阶段管理 - 只对队长显示 */}
-      {tournaments.some(t => t.participant.role === 'captain') && (
+      {/* 比赛阶段管理 - 对队长和管理员显示 */}
+      {canManageStages && (
         <Card className={styles.card}>
           <CardHeader header={<Title3>比赛阶段管理</Title3>} />
 
@@ -137,13 +146,11 @@ export function Settings() {
                 value={selectedTournament}
                 onChange={(e, data) => handleTournamentChange(data.value)}
               >
-                {tournaments
-                  .filter(t => t.participant.role === 'captain')
-                  .map((tournament) => (
-                    <option key={tournament.id} value={tournament.id}>
-                      {tournament.name}
-                    </option>
-                  ))}
+                {tournaments.map((tournament) => (
+                  <option key={tournament.id} value={tournament.id}>
+                    {tournament.name}
+                  </option>
+                ))}
               </Select>
             </Field>
 
