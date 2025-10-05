@@ -32,6 +32,11 @@ import {
     createTableColumn,
     makeStyles,
     Checkbox,
+    Menu,
+    MenuItem,
+    MenuList,
+    MenuPopover,
+    MenuTrigger,
 } from "@fluentui/react-components";
 import { AddRegular, ArrowDownloadRegular, CopyRegular, Delete24Regular } from "@fluentui/react-icons";
 
@@ -242,6 +247,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
     const [parseInputValue, setParseInputValue] = useState("");
     const [parseError, setParseError] = useState<string | null>(null);
     const [parsing, setParsing] = useState(false);
+    const [contextMenuTarget, setContextMenuTarget] = useState<MapEntry | null>(null);
     const { startBatch } = useDownloadManager();
 
     const tournamentId = tournament?.id;
@@ -483,6 +489,20 @@ export function MapPool({ tournament, user }: MapPoolProps) {
             console.error("复制 BID 失败:", err);
             setFeedback({ intent: "error", text: "复制失败，请稍后再试" });
         }
+    }, []);
+
+    const handlePreviewBeatmap = useCallback((beatmap: MapEntry) => {
+        const url = `https://beatmap.try-z.net/dev/?b=${beatmap.beatmap_id}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }, []);
+
+    const handleDownloadFromSayobot = useCallback((beatmap: MapEntry) => {
+        if (!beatmap.beatmapset_id) {
+            setFeedback({ intent: "error", text: "该谱面缺少 Beatmap Set ID，无法从 Sayobot 下载" });
+            return;
+        }
+        const url = `https://dl.sayobot.cn/beatmaps/download/full/${beatmap.beatmapset_id}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
     }, []);
 
     const handleDeleteSelected = useCallback(async () => {
@@ -859,13 +879,31 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                             </DataGridHeader>
                             <DataGridBody<MapEntry>>
                                 {({ item, rowId }) => (
-                                    <DataGridRow<MapEntry> key={rowId} className={styles.dataRow}>
-                                        {({ renderCell }) => (
-                                            <DataGridCell className={styles.compactCell}>
-                                                {renderCell(item)}
-                                            </DataGridCell>
-                                        )}
-                                    </DataGridRow>
+                                    <Menu>
+                                        <MenuTrigger>
+                                            <DataGridRow<MapEntry>
+                                                key={rowId}
+                                                className={styles.dataRow}
+                                                onContextMenu={() => setContextMenuTarget(item)}
+                                            >
+                                                {({ renderCell }) => (
+                                                    <DataGridCell className={styles.compactCell}>
+                                                        {renderCell(item)}
+                                                    </DataGridCell>
+                                                )}
+                                            </DataGridRow>
+                                        </MenuTrigger>
+                                        <MenuPopover>
+                                            <MenuList>
+                                                <MenuItem onClick={() => handlePreviewBeatmap(item)}>
+                                                    预览谱面
+                                                </MenuItem>
+                                                <MenuItem onClick={() => handleDownloadFromSayobot(item)}>
+                                                    从 Sayobot 下载
+                                                </MenuItem>
+                                            </MenuList>
+                                        </MenuPopover>
+                                    </Menu>
                                 )}
                             </DataGridBody>
                         </DataGrid>
