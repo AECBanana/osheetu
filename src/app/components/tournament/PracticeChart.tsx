@@ -27,21 +27,111 @@ const useStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
         gap: "20px",
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "16px",
+        },
     },
     practiceCard: {
         padding: "16px",
+        "@media (max-width: 768px)": {
+            padding: "12px",
+        },
     },
     averageScore: {
         fontSize: "24px",
         fontWeight: "bold",
         color: "#0078d4",
         marginBottom: "8px",
+        "@media (max-width: 768px)": {
+            fontSize: "20px",
+        },
     },
     progressInfo: {
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
         marginTop: "8px",
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: "8px",
+        },
+    },
+    scoreGrid: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: "16px",
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+            gap: "12px",
+        },
+    },
+    topPlayersContainer: {
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "8px",
+        "@media (max-width: 768px)": {
+            gap: "6px",
+        },
+    },
+    playerChip: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        backgroundColor: "var(--colorNeutralBackground3)",
+        padding: "4px 8px",
+        borderRadius: "4px",
+        "@media (max-width: 768px)": {
+            padding: "3px 6px",
+            gap: "4px",
+        },
+    },
+    completionBadge: {
+        position: "absolute",
+        top: "16px",
+        right: "16px",
+        backgroundColor: "#0078d4",
+        color: "white",
+        padding: "4px 8px",
+        borderRadius: "12px",
+        fontSize: "14px",
+        fontWeight: "bold",
+        "@media (max-width: 768px)": {
+            top: "12px",
+            right: "12px",
+            fontSize: "12px",
+            padding: "2px 6px",
+        },
+    },
+    modHeader: {
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        marginBottom: "16px",
+        "@media (max-width: 768px)": {
+            gap: "8px",
+            marginBottom: "12px",
+        },
+    },
+    modTitle: {
+        fontSize: "18px",
+        "@media (max-width: 768px)": {
+            fontSize: "16px",
+        },
+    },
+    dataGridContainer: {
+        overflowX: "auto",
+        "@media (max-width: 768px)": {
+            margin: "0 -16px",
+            padding: "0 16px",
+        },
+    },
+    dataGrid: {
+        minWidth: "100%",
+        "@media (max-width: 768px)": {
+            minWidth: "600px", // 确保表格有足够的宽度来容纳所有列
+        },
     },
 });
 
@@ -255,41 +345,31 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                             />
                         </Card>
 
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))", gap: "20px" }}>
+                        <div className={styles.chartGrid}>
                             {teamOverviewData.map((data) => (
-                                <Card key={data.mod} style={{ padding: "16px", position: "relative" }}>
+                                <Card key={data.mod} className={styles.practiceCard} style={{ position: "relative" }}>
                                     <CardHeader
                                         header={
-                                            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+                                            <div className={styles.modHeader}>
                                                 <Badge appearance="filled" color={getModColor(data.mod) as any} size="large">
                                                     {data.mod}
                                                 </Badge>
-                                                <Text weight="semibold" style={{ fontSize: "18px" }}>Mod 统计</Text>
+                                                <Text weight="semibold" className={styles.modTitle}>Mod 统计</Text>
                                             </div>
                                         }
                                     />
 
                                     {/* 完成情况百分比 - 右上角 */}
-                                    <div style={{
-                                        position: "absolute",
-                                        top: "16px",
-                                        right: "16px",
-                                        backgroundColor: "#0078d4",
-                                        color: "white",
-                                        padding: "4px 8px",
-                                        borderRadius: "12px",
-                                        fontSize: "14px",
-                                        fontWeight: "bold"
-                                    }}>
+                                    <div className={styles.completionBadge}>
                                         {data.completionRate}%
                                     </div>
 
                                     <div style={{ display: "grid", gap: "16px" }}>
                                         {/* 平均分和最高分在同一行 */}
-                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                                        <div className={styles.scoreGrid}>
                                             <div>
                                                 <Text weight="semibold" style={{ display: "block", marginBottom: "4px" }}>平均分</Text>
-                                                <Text style={{ fontSize: "24px", fontWeight: "bold", color: "#0078d4" }}>
+                                                <Text className={styles.averageScore}>
                                                     {data.averageScore.toLocaleString()}
                                                 </Text>
                                             </div>
@@ -305,11 +385,11 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                                         {/* 最高分成员 */}
                                         <div>
                                             <Text weight="semibold" style={{ display: "block", marginBottom: "8px" }}>最高分成员</Text>
-                                            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                            <div className={styles.topPlayersContainer}>
                                                 {data.topPlayers.map((playerName) => {
                                                     const participant = participants.find(p => p.username === playerName);
                                                     return (
-                                                        <div key={playerName} style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "var(--colorNeutralBackground3)", padding: "4px 8px", borderRadius: "4px" }}>
+                                                        <div key={playerName} className={styles.playerChip}>
                                                             <Avatar
                                                                 size={24}
                                                                 name={playerName}
@@ -337,28 +417,31 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                             />
                         </Card>
 
-                        <DataGrid
-                            items={getPlayerData(parseInt(selectedTab))}
-                            columns={playerColumns}
-                            getRowId={(item) => item.mod}
-                        >
-                            <DataGridHeader>
-                                <DataGridRow>
-                                    {({ renderHeaderCell }) => (
-                                        <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                                    )}
-                                </DataGridRow>
-                            </DataGridHeader>
-                            <DataGridBody<any>>
-                                {({ item, rowId }) => (
-                                    <DataGridRow<any> key={rowId}>
-                                        {({ renderCell }) => (
-                                            <DataGridCell>{renderCell(item)}</DataGridCell>
+                        <div className={styles.dataGridContainer}>
+                            <DataGrid
+                                className={styles.dataGrid}
+                                items={getPlayerData(parseInt(selectedTab))}
+                                columns={playerColumns}
+                                getRowId={(item) => item.mod}
+                            >
+                                <DataGridHeader>
+                                    <DataGridRow>
+                                        {({ renderHeaderCell }) => (
+                                            <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
                                         )}
                                     </DataGridRow>
-                                )}
-                            </DataGridBody>
-                        </DataGrid>
+                                </DataGridHeader>
+                                <DataGridBody<any>>
+                                    {({ item, rowId }) => (
+                                        <DataGridRow<any> key={rowId}>
+                                            {({ renderCell }) => (
+                                                <DataGridCell>{renderCell(item)}</DataGridCell>
+                                            )}
+                                        </DataGridRow>
+                                    )}
+                                </DataGridBody>
+                            </DataGrid>
+                        </div>
                     </div>
                 )}
             </div>

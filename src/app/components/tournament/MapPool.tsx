@@ -49,6 +49,10 @@ const useStyles = makeStyles({
     },
     dataGridWrapper: {
         overflowX: "auto",
+        "@media (max-width: 768px)": {
+            margin: "0 -16px",
+            padding: "0 16px",
+        },
     },
     container: {
         display: "flex",
@@ -60,18 +64,59 @@ const useStyles = makeStyles({
         flexWrap: "wrap",
         gap: "8px",
         padding: "0 16px",
+        "@media (max-width: 768px)": {
+            padding: "0 8px",
+            gap: "6px",
+            flexDirection: "column",
+            alignItems: "stretch",
+        },
+    },
+    toolbarRow: {
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+        "@media (max-width: 768px)": {
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: "6px",
+        },
+    },
+    toolbarActions: {
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+        marginLeft: "auto",
+        "@media (max-width: 768px)": {
+            marginLeft: 0,
+            marginTop: "8px",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: "6px",
+        },
     },
     headerActions: {
         display: "flex",
         alignItems: "center",
         gap: "12px",
         padding: "0 16px",
+        "@media (max-width: 768px)": {
+            padding: "0 8px",
+            flexDirection: "column",
+            alignItems: "stretch",
+            gap: "8px",
+        },
     },
     managementNotice: {
         margin: "0 16px",
+        "@media (max-width: 768px)": {
+            margin: "0 8px",
+        },
     },
     messageBar: {
         margin: "0 16px",
+        "@media (max-width: 768px)": {
+            margin: "0 8px",
+        },
     },
     mapInfo: {
         display: "flex",
@@ -99,6 +144,10 @@ const useStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        "@media (max-width: 768px)": {
+            width: "48px",
+            height: "30px",
+        },
     },
     coverImage: {
         width: "100%",
@@ -108,6 +157,9 @@ const useStyles = makeStyles({
     coverFallback: {
         fontSize: "12px",
         color: "var(--colorNeutralForeground3)",
+        "@media (max-width: 768px)": {
+            fontSize: "10px",
+        },
     },
     dialogGrid: {
         display: "grid",
@@ -115,11 +167,17 @@ const useStyles = makeStyles({
     },
     dialogColumns: {
         gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        "@media (max-width: 768px)": {
+            gridTemplateColumns: "1fr",
+        },
     },
     emptyState: {
         textAlign: "center",
         padding: "32px 16px",
         color: "var(--colorNeutralForeground3)",
+        "@media (max-width: 768px)": {
+            padding: "24px 8px",
+        },
     },
     fullWidthField: {
         gridColumn: "1 / -1",
@@ -128,6 +186,9 @@ const useStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         gap: "8px",
+        "@media (max-width: 768px)": {
+            gap: "4px",
+        },
     },
     mapInfoColumn: {
         minWidth: "280px",
@@ -135,6 +196,9 @@ const useStyles = makeStyles({
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
+        "@media (max-width: 768px)": {
+            minWidth: "200px",
+        },
     },
     tagPopover: {
         display: "flex",
@@ -144,6 +208,10 @@ const useStyles = makeStyles({
     },
     addMapButton: {
         minWidth: "136px",
+        "@media (max-width: 768px)": {
+            minWidth: "auto",
+            width: "100%",
+        },
     },
     dataRow: {
         minHeight: "40px",
@@ -155,6 +223,9 @@ const useStyles = makeStyles({
         minHeight: "40px",
         height: "auto",
         padding: "8px 12px",
+        "@media (max-width: 768px)": {
+            padding: "6px 8px",
+        },
     },
     headerCell: {
         display: "flex",
@@ -162,6 +233,9 @@ const useStyles = makeStyles({
         minHeight: "40px",
         height: "auto",
         padding: "8px 12px",
+        "@media (max-width: 768px)": {
+            padding: "6px 8px",
+        },
     },
     ellipsis: {
         overflow: "hidden",
@@ -169,6 +243,16 @@ const useStyles = makeStyles({
         whiteSpace: "nowrap",
         display: "block",
         width: "100%",
+    },
+    mobileHidden: {
+        "@media (max-width: 768px)": {
+            display: "none",
+        },
+    },
+    mobileCompact: {
+        "@media (max-width: 768px)": {
+            fontSize: "12px",
+        },
     },
 });
 
@@ -641,7 +725,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                 renderHeaderCell: () => "BID",
                 renderCell: (item) => (
                     <div className={styles.bidCell}>
-                        <Text>{item.beatmap_id}</Text>
+                        <Text className={styles.mobileCompact}>{item.beatmap_id}</Text>
                         <Tooltip content="复制 BID" relationship="label">
                             <Button
                                 appearance="subtle"
@@ -682,7 +766,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                             <Text weight="semibold" className={styles.ellipsis}>
                                 {item.title} - {item.artist}
                             </Text>
-                            <Text size={200} className={styles.ellipsis}>
+                            <Text size={200} className={`${styles.ellipsis} ${styles.mobileCompact}`}>
                                 [{item.difficulty}] by {item.mapper}
                             </Text>
                         </div>
@@ -692,33 +776,33 @@ export function MapPool({ tournament, user }: MapPoolProps) {
             createTableColumn<MapEntry>({
                 columnId: "ar",
                 renderHeaderCell: () => "AR",
-                renderCell: (item) => <Text>{item.ar === null ? "--" : Number(item.ar).toFixed(2)}</Text>,
+                renderCell: (item) => <Text className={styles.mobileCompact}>{item.ar === null ? "--" : Number(item.ar).toFixed(2)}</Text>,
             }),
             createTableColumn<MapEntry>({
                 columnId: "cs",
                 renderHeaderCell: () => "CS",
-                renderCell: (item) => <Text>{item.cs === null ? "--" : Number(item.cs).toFixed(2)}</Text>,
+                renderCell: (item) => <Text className={styles.mobileCompact}>{item.cs === null ? "--" : Number(item.cs).toFixed(2)}</Text>,
             }),
             createTableColumn<MapEntry>({
                 columnId: "od",
                 renderHeaderCell: () => "OD",
-                renderCell: (item) => <Text>{item.od === null ? "--" : Number(item.od).toFixed(2)}</Text>,
+                renderCell: (item) => <Text className={styles.mobileCompact}>{item.od === null ? "--" : Number(item.od).toFixed(2)}</Text>,
             }),
             createTableColumn<MapEntry>({
                 columnId: "bpm",
                 renderHeaderCell: () => "BPM",
-                renderCell: (item) => <Text>{item.bpm === null ? "--" : item.bpm}</Text>,
+                renderCell: (item) => <Text className={styles.mobileCompact}>{item.bpm === null ? "--" : item.bpm}</Text>,
             }),
             createTableColumn<MapEntry>({
                 columnId: "length",
                 renderHeaderCell: () => "时长",
-                renderCell: (item) => <Text>{item.length || "--"}</Text>,
+                renderCell: (item) => <Text className={styles.mobileCompact}>{item.length || "--"}</Text>,
             }),
             createTableColumn<MapEntry>({
                 columnId: "tags",
                 renderHeaderCell: () => "标签",
                 renderCell: (item) => (
-                    <div className={styles.tagList}>
+                    <div className={`${styles.tagList} ${styles.mobileHidden}`}>
                         {item.tags.length === 0 ? (
                             <Text size={200} style={{ color: "var(--colorNeutralForeground3)" }}>暂无</Text>
                         ) : (
@@ -763,6 +847,8 @@ export function MapPool({ tournament, user }: MapPoolProps) {
             styles.mapInfoColumn,
             styles.tagList,
             styles.tagPopover,
+            styles.mobileCompact,
+            styles.mobileHidden,
         ]
     );
 
@@ -804,20 +890,21 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                 )}
 
                 <div className={styles.toolbar}>
-                    <Button
-                        appearance="primary"
-                        icon={<ArrowDownloadRegular />}
-                        onClick={downloadSelected}
-                        disabled={selectedMaps.length === 0}
-                    >
-                        批量下载 ({selectedMaps.length})
-                    </Button>
-                    <Button appearance="subtle" onClick={handleToggleSelectAll} disabled={maps.length === 0}>
-                        {selectedMaps.length === maps.length && maps.length > 0 ? "取消全选" : "全选"}
-                    </Button>
+                    <div className={styles.toolbarRow}>
+                        <Button
+                            appearance="primary"
+                            icon={<ArrowDownloadRegular />}
+                            onClick={downloadSelected}
+                            disabled={selectedMaps.length === 0}
+                        >
+                            批量下载 ({selectedMaps.length})
+                        </Button>
+                        <Button appearance="subtle" onClick={handleToggleSelectAll} disabled={maps.length === 0}>
+                            {selectedMaps.length === maps.length && maps.length > 0 ? "取消全选" : "全选"}
+                        </Button>
+                    </div>
                     {canManage && (
-                        <>
-                            <div style={{ flexGrow: 1 }} />
+                        <div className={styles.toolbarActions}>
                             <Button
                                 appearance="outline"
                                 icon={<Delete24Regular />}
@@ -830,7 +917,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                             >
                                 移除所选 ({selectedMaps.length})
                             </Button>
-                        </>
+                        </div>
                     )}
                 </div>
 
@@ -856,14 +943,14 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                             columnSizingOptions={{
                                 select: { idealWidth: 40, minWidth: 40 },
                                 mod: { idealWidth: 60, minWidth: 60 },
-                                bid: { idealWidth: 140, minWidth: 140 },
-                                cover: { idealWidth: 80, minWidth: 80 },
+                                bid: { idealWidth: 140, minWidth: 120 },
+                                cover: { idealWidth: 80, minWidth: 60 },
                                 info: { minWidth: 280 },
-                                ar: { idealWidth: 60, minWidth: 60 },
-                                cs: { idealWidth: 60, minWidth: 60 },
-                                od: { idealWidth: 60, minWidth: 60 },
-                                bpm: { idealWidth: 70, minWidth: 70 },
-                                length: { idealWidth: 70, minWidth: 70 },
+                                ar: { idealWidth: 60, minWidth: 50 },
+                                cs: { idealWidth: 60, minWidth: 50 },
+                                od: { idealWidth: 60, minWidth: 50 },
+                                bpm: { idealWidth: 70, minWidth: 60 },
+                                length: { idealWidth: 70, minWidth: 60 },
                                 tags: { minWidth: 120, defaultWidth: 120 },
                             }}
                             resizableColumns
