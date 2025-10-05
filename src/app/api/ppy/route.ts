@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Validate that the URL is from ppy.sh
-    if (!url.startsWith('https://assets.ppy.sh/')) {
+    if (!url.startsWith('https://assets.ppy.sh/') && !url.startsWith('https://a.ppy.sh/')) {
         return NextResponse.json({ error: 'Invalid URL domain' }, { status: 400 });
     }
 
