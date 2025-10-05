@@ -177,6 +177,7 @@ interface User {
 interface MapEntry {
     id: number;
     tournament_id: number;
+    stage: string;
     beatmapset_id: number | null;
     beatmap_id: number;
     cover_url: string | null;
@@ -195,9 +196,7 @@ interface MapEntry {
     tags: string[];
     added_by: { id: number; username: string | null } | null;
     added_at: string;
-}
-
-interface MapPoolProps {
+}interface MapPoolProps {
     tournament: Tournament;
     user: User;
 }
@@ -546,6 +545,7 @@ export function MapPool({ tournament, user }: MapPoolProps) {
                 bpm: formState.bpm,
                 length: formState.length,
                 tags: formState.tags,
+                stage: tournament.current_stage,
             };
 
             const response = await fetch(`/api/tournaments/${encodeURIComponent(tournamentId)}/map-pool`, {

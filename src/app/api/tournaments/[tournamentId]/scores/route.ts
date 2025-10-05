@@ -27,7 +27,8 @@ export async function GET(
             FROM scores s
             JOIN users u ON s.user_id = u.id
             JOIN map_pools mp ON s.map_pool_id = mp.id
-            WHERE mp.tournament_id = ?
+            JOIN tournaments t ON mp.tournament_id = t.id
+            WHERE mp.tournament_id = ? AND (mp.stage = t.current_stage OR mp.stage = '')
             ORDER BY s.timestamp DESC
             LIMIT 50;
         `;

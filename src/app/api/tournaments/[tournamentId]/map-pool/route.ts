@@ -13,6 +13,7 @@ interface ParticipantRow extends RowDataPacket {
 interface MapPoolRow extends RowDataPacket {
   id: number;
   tournament_id: number;
+  stage: string;
   beatmapset_id: number | null;
   beatmap_id: number;
   cover_url: string | null;
@@ -57,6 +58,7 @@ const parseTags = (value: string | null) => {
 const mapRowToPayload = (row: MapPoolRow) => ({
   id: row.id,
   tournament_id: row.tournament_id,
+  stage: row.stage,
   beatmapset_id: row.beatmapset_id,
   beatmap_id: row.beatmap_id,
   cover_url: row.cover_url,
@@ -75,16 +77,16 @@ const mapRowToPayload = (row: MapPoolRow) => ({
   tags: parseTags(row.tags),
   added_by: row.added_by
     ? {
-        id: row.added_by,
-        username: row.added_by_username,
-      }
+      id: row.added_by,
+      username: row.added_by_username,
+    }
     : null,
   added_at:
     row.added_at instanceof Date
       ? row.added_at.toISOString()
       : typeof row.added_at === "string"
-      ? new Date(row.added_at).toISOString()
-      : new Date().toISOString(),
+        ? new Date(row.added_at).toISOString()
+        : new Date().toISOString(),
 });
 
 const getParticipantRecord = async (tournamentId: number, userId: number) => {
@@ -129,13 +131,25 @@ export async function GET(
 
   await ensureMapPoolColumns();
 
+  // 获取当前比赛的阶段信息
+  const tournamentRows = (await query(
+    `SELECT current_stage FROM tournaments WHERE id = ? LIMIT 1`,
+    [numericTournamentId]
+  )) as Array<{ current_stage: string }>;
+
+  if (tournamentRows.length === 0) {
+    return NextResponse.json({ error: "比赛不存在" }, { status: 404 });
+  }
+
+  const currentStage = tournamentRows[0].current_stage;
+
   const rows = (await query(
     `SELECT mp.*, u.username AS added_by_username
        FROM map_pools mp
   LEFT JOIN users u ON mp.added_by = u.id
-      WHERE mp.tournament_id = ?
+      WHERE mp.tournament_id = ? AND (mp.stage = ? OR mp.stage = '')
    ORDER BY mp.mod_value, mp.id`,
-    [numericTournamentId]
+    [numericTournamentId, currentStage]
   )) as MapPoolRow[];
 
   const canManage = isAdmin || participant?.role === "captain";
@@ -176,6 +190,18 @@ export async function POST(
     return NextResponse.json({ error: "您没有权限管理图池" }, { status: 403 });
   }
 
+  // 获取当前比赛的阶段信息
+  const tournamentRows = (await query(
+    `SELECT current_stage FROM tournaments WHERE id = ? LIMIT 1`,
+    [numericTournamentId]
+  )) as Array<{ current_stage: string }>;
+
+  if (tournamentRows.length === 0) {
+    return NextResponse.json({ error: "比赛不存在" }, { status: 404 });
+  }
+
+  const currentStage = tournamentRows[0].current_stage;
+
   let payload: any;
   try {
     payload = await request.json();
@@ -200,6 +226,7 @@ export async function POST(
     bpm,
     length,
     tags,
+    stage,
   } = payload ?? {};
 
   if (!beatmap_id || !title || !artist || !difficulty || !mod_value || !bpm || !length) {
@@ -228,14 +255,14 @@ export async function POST(
 
   const normalizedTags = Array.isArray(tags)
     ? (tags as unknown[])
-        .map((item) => (typeof item === "string" ? item.trim() : ""))
-        .filter((item) => item.length > 0)
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((item) => item.length > 0)
     : typeof tags === "string"
-    ? tags
+      ? tags
         .split(/[,\n]/)
         .map((item) => item.trim())
         .filter((item) => item.length > 0)
-    : [];
+      : [];
 
   const storedTags = normalizedTags.length > 0 ? JSON.stringify(normalizedTags) : null;
 
@@ -245,6 +272,7 @@ export async function POST(
     const result = (await query(
       `INSERT INTO map_pools (
         tournament_id,
+        stage,
         beatmapset_id,
         beatmap_id,
         cover_url,
@@ -262,9 +290,10 @@ export async function POST(
         length,
         tags,
         added_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         numericTournamentId,
+        stage || currentStage, // 如果没有指定stage，使用当前阶段
         numericBeatmapsetId,
         numericBeatmapId,
         cover_url ?? null,

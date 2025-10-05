@@ -44,6 +44,10 @@ export const ensureMapPoolColumns = async () => {
     alter: string;
   }> = [
       {
+        name: "stage",
+        alter: "ALTER TABLE map_pools ADD COLUMN stage VARCHAR(50) NOT NULL DEFAULT ''",
+      },
+      {
         name: "beatmapset_id",
         alter: "ALTER TABLE map_pools ADD COLUMN beatmapset_id BIGINT UNSIGNED",
       },
@@ -173,6 +177,7 @@ export const initDatabase = async () => {
       CREATE TABLE IF NOT EXISTS map_pools (
         id INT PRIMARY KEY AUTO_INCREMENT,
         tournament_id INT NOT NULL,
+        stage VARCHAR(50) NOT NULL DEFAULT '',
         beatmapset_id BIGINT UNSIGNED,
         beatmap_id BIGINT UNSIGNED NOT NULL,
         cover_url VARCHAR(512),
