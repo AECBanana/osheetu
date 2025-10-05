@@ -471,25 +471,25 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
             }
             const normalized: SelectableUser[] = Array.isArray(data.users)
                 ? data.users.map((user: any) => {
-                      const rawId = user.id;
-                      const parsedId =
-                          typeof rawId === "number" && Number.isFinite(rawId)
-                              ? rawId
-                              : typeof rawId === "string" && rawId.trim() !== "" && !Number.isNaN(Number(rawId))
-                              ? Number(rawId)
-                              : null;
+                    const rawId = user.id;
+                    const parsedId =
+                        typeof rawId === "number" && Number.isFinite(rawId)
+                            ? rawId
+                            : typeof rawId === "string" && rawId.trim() !== "" && !Number.isNaN(Number(rawId))
+                                ? Number(rawId)
+                                : null;
 
-                      return {
-                          id: parsedId,
-                          osu_id: String(user.osu_id ?? ""),
-                          username: String(user.username ?? ""),
-                          avatar_url: user.avatar_url ?? null,
-                          is_admin: Boolean(user.is_admin),
-                          groups: Array.isArray(user.groups) ? user.groups : [],
-                          source: user.source === "external" ? "external" : "registered",
-                          profile: user.profile ?? undefined,
-                      } satisfies SelectableUser;
-                  })
+                    return {
+                        id: parsedId,
+                        osu_id: String(user.osu_id ?? ""),
+                        username: String(user.username ?? ""),
+                        avatar_url: user.avatar_url ?? null,
+                        is_admin: Boolean(user.is_admin),
+                        groups: Array.isArray(user.groups) ? user.groups : [],
+                        source: user.source === "external" ? "external" : "registered",
+                        profile: user.profile ?? undefined,
+                    } satisfies SelectableUser;
+                })
                 : [];
             setAvailableUsers(normalized);
         } catch (error: any) {
@@ -569,8 +569,8 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                 typeof rawId === "number" && Number.isFinite(rawId)
                     ? rawId
                     : typeof rawId === "string" && rawId.trim() !== "" && !Number.isNaN(Number(rawId))
-                    ? Number(rawId)
-                    : null;
+                        ? Number(rawId)
+                        : null;
 
             const candidate: SelectableUser = {
                 id: parsedId,
@@ -722,9 +722,9 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                                         setFormState((prev) =>
                                             prev
                                                 ? {
-                                                      ...prev,
-                                                      currentStage: value,
-                                                  }
+                                                    ...prev,
+                                                    currentStage: value,
+                                                }
                                                 : prev
                                         );
                                     }}
@@ -750,9 +750,9 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                                         setFormState((prev) =>
                                             prev
                                                 ? {
-                                                      ...prev,
-                                                      status: value,
-                                                  }
+                                                    ...prev,
+                                                    status: value,
+                                                }
                                                 : prev
                                         );
                                     }}
@@ -772,9 +772,9 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                                     setFormState((prev) =>
                                         prev
                                             ? {
-                                                  ...prev,
-                                                  includeQualifier: !!data.checked,
-                                              }
+                                                ...prev,
+                                                includeQualifier: !!data.checked,
+                                            }
                                             : prev
                                     )
                                 }
@@ -787,9 +787,9 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                                     setFormState((prev) =>
                                         prev
                                             ? {
-                                                  ...prev,
-                                                  allowCustomMods: !!data.checked,
-                                              }
+                                                ...prev,
+                                                allowCustomMods: !!data.checked,
+                                            }
                                             : prev
                                     )
                                 }
@@ -917,8 +917,6 @@ export function ManageTournament({ tournamentId, onBack, onUpdated, onDeleted }:
                         >
                             <option value="player">选手</option>
                             <option value="captain">队长</option>
-                            <option value="referee">裁判</option>
-                            <option value="staff">工作人员</option>
                         </Select>
                     </Field>
                     <Field label={{ children: "状态", htmlFor: participantStatusSelectId }} className={styles.formField}>

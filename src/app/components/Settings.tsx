@@ -11,6 +11,9 @@ import {
   Select,
   MessageBar,
   tokens,
+  RadioGroup,
+  Radio,
+  Label,
 } from "@fluentui/react-components";
 import { useCallback, useState } from "react";
 import { logout } from "@/utils/auth";
@@ -52,11 +55,37 @@ const useStyles = makeStyles({
     justifyContent: "flex-end",
     width: "100%",
   },
+  colorOptions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+    gap: "12px",
+    marginTop: "8px",
+  },
+  colorOption: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px",
+    border: "1px solid var(--colorNeutralStroke1)",
+    borderRadius: "4px",
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
+  colorPreview: {
+    width: "32px",
+    height: "32px",
+    borderRadius: "50%",
+    border: "2px solid var(--colorNeutralStroke1)",
+  },
+  selectedColor: {
+    border: "2px solid var(--colorBrandStroke1)",
+  },
 });
 
 export function Settings({ user }: SettingsProps) {
   const styles = useStyles();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, colorScheme, toggleTheme, setColorScheme } = useTheme();
   const { tournaments } = useAuthorizedTournaments(user); // 获取用户相关的比赛数据
 
   const [selectedTournament, setSelectedTournament] = useState<string>('');
@@ -65,7 +94,7 @@ export function Settings({ user }: SettingsProps) {
   const [updateMessage, setUpdateMessage] = useState<string>('');
 
   // 检查用户是否有权限管理比赛阶段（队长或管理员）
-  const canManageStages = user.is_admin || tournaments.some(t => t.participant.role === 'captain');
+  const canManageStages = user.is_admin || tournaments.some(t => t.participant?.role === 'captain');
 
   // 找到当前选中的比赛
   const currentTournament = tournaments.find(t => t.id === selectedTournament);
@@ -74,7 +103,9 @@ export function Settings({ user }: SettingsProps) {
     setSelectedTournament(tournamentId);
     const tournament = tournaments.find(t => t.id === tournamentId);
     if (tournament) {
-      setSelectedStage(tournament.current_stage);
+      setSelectedStage(tournament.current_stage || (tournament.stages && tournament.stages.length > 0 ? tournament.stages[0] : 'qualifier'));
+    } else {
+      setSelectedStage('');
     }
     setUpdateMessage('');
   };
@@ -133,6 +164,30 @@ export function Settings({ user }: SettingsProps) {
           />
         </Field>
 
+        <Field label="主题颜色">
+          <div className={styles.colorOptions}>
+            {[
+              { key: "blue", label: "蓝色", color: "#0078d4" },
+              { key: "green", label: "绿色", color: "#107c10" },
+              { key: "purple", label: "紫色", color: "#5c2d91" },
+              { key: "orange", label: "橙色", color: "#ff8c00" },
+              { key: "pink", label: "粉色", color: "#e3008c" },
+            ].map(({ key, label, color }) => (
+              <div
+                key={key}
+                className={`${styles.colorOption} ${colorScheme === key ? styles.selectedColor : ""}`}
+                onClick={() => setColorScheme(key as any)}
+              >
+                <div
+                  className={styles.colorPreview}
+                  style={{ backgroundColor: color }}
+                />
+                <Label size="small">{label}</Label>
+              </div>
+            ))}
+          </div>
+        </Field>
+
       </Card>
 
       {/* 比赛阶段管理 - 对队长和管理员显示 */}
@@ -161,7 +216,10 @@ export function Settings({ user }: SettingsProps) {
                   value={selectedStage}
                   onChange={(e, data) => setSelectedStage(data.value)}
                 >
-                  {currentTournament.stages.map((stage) => (
+                  {(currentTournament.stages && currentTournament.stages.length > 0
+                    ? currentTournament.stages
+                    : ['qualifier', 'group-stage', 'round-of-16', 'quarterfinals', 'semifinals', 'finals']
+                  ).map((stage) => (
                     <option key={stage} value={stage}>
                       {stage.toUpperCase()}
                     </option>

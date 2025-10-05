@@ -309,7 +309,7 @@ export function PracticeChart({ tournament, user }: PracticeChartProps) {
                                                 {data.topPlayers.map((playerName) => {
                                                     const participant = participants.find(p => p.username === playerName);
                                                     return (
-                                                        <div key={playerName} style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#f3f2f1", padding: "4px 8px", borderRadius: "4px" }}>
+                                                        <div key={playerName} style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "var(--colorNeutralBackground3)", padding: "4px 8px", borderRadius: "4px" }}>
                                                             <Avatar
                                                                 size={24}
                                                                 name={playerName}

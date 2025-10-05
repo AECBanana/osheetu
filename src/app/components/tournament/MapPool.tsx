@@ -31,6 +31,7 @@ import {
     Tooltip,
     createTableColumn,
     makeStyles,
+    Checkbox,
 } from "@fluentui/react-components";
 import { AddRegular, ArrowDownloadRegular, CopyRegular, Delete24Regular } from "@fluentui/react-icons";
 
@@ -77,10 +78,11 @@ const useStyles = makeStyles({
     },
     tagList: {
         display: "flex",
-        flexWrap: "nowrap",
+        flexWrap: "wrap",
         gap: "4px",
         alignItems: "center",
-        maxHeight: "40px",
+        minHeight: "24px",
+        maxHeight: "48px",
         overflow: "hidden",
     },
     coverWrapper: {
@@ -124,7 +126,7 @@ const useStyles = makeStyles({
     },
     mapInfoColumn: {
         minWidth: "280px",
-        height: "40px",
+        minHeight: "40px",
         display: "flex",
         alignItems: "center",
         overflow: "hidden",
@@ -139,19 +141,22 @@ const useStyles = makeStyles({
         minWidth: "136px",
     },
     dataRow: {
-        height: "40px",
+        minHeight: "40px",
+        height: "auto",
     },
     compactCell: {
         display: "flex",
         alignItems: "center",
-        height: "40px",
-        padding: "0 12px",
+        minHeight: "40px",
+        height: "auto",
+        padding: "8px 12px",
     },
     headerCell: {
         display: "flex",
         alignItems: "center",
-        height: "40px",
-        padding: "0 12px",
+        minHeight: "40px",
+        height: "auto",
+        padding: "8px 12px",
     },
     ellipsis: {
         overflow: "hidden",
@@ -582,13 +587,18 @@ export function MapPool({ tournament, user }: MapPoolProps) {
         () => [
             createTableColumn<MapEntry>({
                 columnId: "select",
-                renderHeaderCell: () => "",
+                renderHeaderCell: () => (
+                    <Checkbox
+                        checked={selectedMaps.length === maps.length && maps.length > 0}
+                        onChange={handleToggleSelectAll}
+                        disabled={maps.length === 0}
+                    />
+                ),
                 renderCell: (item) => (
-                    <input
-                        type="checkbox"
+                    <Checkbox
                         checked={selectedMaps.includes(String(item.id))}
-                        onChange={(e) => {
-                            if (e.target.checked) {
+                        onChange={(e, data) => {
+                            if (data.checked) {
                                 setSelectedMaps((prev) => [...prev, String(item.id)]);
                             } else {
                                 setSelectedMaps((prev) => prev.filter((id) => id !== String(item.id)));

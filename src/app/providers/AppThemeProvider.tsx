@@ -1,35 +1,105 @@
 "use client";
 
 import { createContext, useContext, useState, useMemo, type ReactNode, useEffect } from "react";
-import { webLightTheme, webDarkTheme, type Theme } from "@fluentui/react-components";
+import { webLightTheme, webDarkTheme, type Theme, createLightTheme, createDarkTheme, tokens } from "@fluentui/react-components";
+
+export type ColorScheme = "blue" | "green" | "purple" | "orange" | "pink";
 
 type AppThemeContextType = {
   theme: "light" | "dark";
+  colorScheme: ColorScheme;
   toggleTheme: () => void;
+  setColorScheme: (scheme: ColorScheme) => void;
   fluentTheme: Theme;
 };
 
 const AppThemeContext = createContext<AppThemeContextType | null>(null);
 
+// 定义颜色主题
+const colorSchemes = {
+  blue: {
+    primary: "#0078d4",
+    light: "#106ebe",
+    dark: "#005a9e",
+  },
+  green: {
+    primary: "#107c10",
+    light: "#0b5a0b",
+    dark: "#0d652d",
+  },
+  purple: {
+    primary: "#5c2d91",
+    light: "#4b1c7c",
+    dark: "#6b2ba6",
+  },
+  orange: {
+    primary: "#ff8c00",
+    light: "#e67300",
+    dark: "#cc6600",
+  },
+  pink: {
+    primary: "#e3008c",
+    light: "#c4007a",
+    dark: "#b3007a",
+  },
+};
+
+const createCustomTheme = (baseTheme: Theme, colorScheme: ColorScheme): Theme => {
+  const colors = colorSchemes[colorScheme];
+
+  // 创建自定义主题，通过修改品牌颜色
+  const customTheme = { ...baseTheme };
+
+  // 修改品牌颜色
+  (customTheme as any).colorBrandForeground1 = colors.primary;
+  (customTheme as any).colorBrandForeground2 = colors.light;
+  (customTheme as any).colorBrandForeground3 = colors.dark;
+  (customTheme as any).colorBrandBackground1 = colors.primary;
+  (customTheme as any).colorBrandBackground2 = colors.light;
+  (customTheme as any).colorBrandBackground3 = colors.dark;
+
+  return customTheme;
+};
+
 export function AppThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [colorScheme, setColorScheme] = useState<ColorScheme>("blue");
 
   useEffect(() => {
+    // 从localStorage读取保存的设置
+    const savedTheme = localStorage.getItem("app-theme") as "light" | "dark" | null;
+    const savedColorScheme = localStorage.getItem("app-color-scheme") as ColorScheme | null;
+
     const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-    setTheme(prefersDark ? "dark" : "light");
+    setTheme(savedTheme || (prefersDark ? "dark" : "light"));
+    setColorScheme(savedColorScheme || "blue");
   }, []);
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+    setTheme((prevTheme) => {
+      const newTheme = prevTheme === "light" ? "dark" : "light";
+      localStorage.setItem("app-theme", newTheme);
+      return newTheme;
+    });
   };
 
-  const fluentTheme = useMemo(() => (theme === "light" ? webLightTheme : webDarkTheme), [theme]);
+  const handleSetColorScheme = (scheme: ColorScheme) => {
+    setColorScheme(scheme);
+    localStorage.setItem("app-color-scheme", scheme);
+  };
+
+  const fluentTheme = useMemo(() => {
+    const baseTheme = theme === "light" ? webLightTheme : webDarkTheme;
+    return colorScheme === "blue" ? baseTheme : createCustomTheme(baseTheme, colorScheme);
+  }, [theme, colorScheme]);
 
   const value = useMemo(() => ({
     theme,
+    colorScheme,
     toggleTheme,
+    setColorScheme: handleSetColorScheme,
     fluentTheme,
-  }), [theme, toggleTheme, fluentTheme]);
+  }), [theme, colorScheme, toggleTheme, handleSetColorScheme, fluentTheme]);
 
   return (
     <AppThemeContext.Provider value={value}>
