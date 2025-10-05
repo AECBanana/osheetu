@@ -80,9 +80,11 @@ const useStyles = makeStyles({
   },
   drawerHeaderArea: {
     display: "flex",
-    flexDirection: "column",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "12px 16px 8px 16px",
     gap: "12px",
-    padding: "0 4px",
   },
   drawerScroll: {
     flexGrow: 1,
@@ -96,8 +98,10 @@ const useStyles = makeStyles({
     display: "flex",
     alignItems: "center",
     gap: "12px",
-    padding: "0 4px",
-    marginTop: "8px",
+    padding: "0",
+    marginTop: "0",
+    flex: 1,
+    minWidth: 0,
   },
   avatar: {
     width: "40px",
@@ -332,9 +336,12 @@ export default function Home() {
           className={styles.drawer}
         >
           <NavDrawerHeader>
-            <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
-              <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
-            </Tooltip>
+            <div className={styles.drawerHeaderArea}>
+              <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
+              <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+                <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+              </Tooltip>
+            </div>
           </NavDrawerHeader>
           <NavDrawerBody className={styles.drawerBody}>
             <AppItem icon={<PersonCircle32Regular />}>OSheetu</AppItem>
@@ -348,7 +355,7 @@ export default function Home() {
                 <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
               </Tooltip>
               <div className={styles.mainTitleGroup}>
-                <Title2>OSheetu 控制台</Title2>
+                <Title2>OSheetu</Title2>
                 <Body1>请稍候，正在获取会话信息...</Body1>
               </div>
             </div>
@@ -383,6 +390,9 @@ export default function Home() {
               ) : (
                 <Body1 className={styles.navPlaceholder}>未登录</Body1>
               )}
+              <Tooltip content={isNavOpen ? "收起导航" : "展开导航"} relationship="label">
+                <Hamburger onClick={handleNavToggle} aria-label="导航切换" aria-expanded={isNavOpen} />
+              </Tooltip>
             </div>
           </NavDrawerHeader>
           <NavDrawerBody className={styles.drawerBody}>
