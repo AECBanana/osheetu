@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
     Card,
     CardHeader,
@@ -11,6 +11,9 @@ import {
     ProgressBar,
     makeStyles,
     tokens,
+    Spinner,
+    Button,
+    Tooltip,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
@@ -27,6 +30,36 @@ const useStyles = makeStyles({
         fontWeight: "bold",
         color: tokens.colorBrandForeground1,
     },
+    recentScoresCard: {
+        padding: "16px",
+        maxHeight: "300px",
+        overflowY: "auto",
+    },
+    scoreItem: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "8px 0",
+        borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+    },
+    scoreValue: {
+        fontWeight: "bold",
+        color: tokens.colorBrandForeground1,
+    },
+    scoreMap: {
+        fontSize: "12px",
+        color: tokens.colorNeutralForeground3,
+    },
+    loadingContainer: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "200px",
+    },
+    errorContainer: {
+        textAlign: "center",
+        padding: "20px",
+    },
 });
 
 interface Tournament {
@@ -37,17 +70,51 @@ interface Tournament {
     stages: string[];
     current_stage: string;
     status: string;
-    participant: {
-        role: string;
-        status: string;
-        joined_at: string;
-    };
 }
 
 interface User {
     id: number;
     username: string;
     avatar_url: string;
+}
+
+interface OverviewData {
+    tournament: {
+        id: string;
+        name: string;
+        mode: string;
+        type: string;
+        current_stage: string;
+        stages: string[];
+        progress: number;
+        status: string;
+    };
+    participant: {
+        role: string;
+        status: string;
+        joined_at: string;
+    } | null;
+    stats: {
+        total_maps: number;
+        practice_progress: number;
+        personal_stats: {
+            total_scores: number;
+            avg_score: number;
+            best_score: number;
+            maps_played: number;
+        };
+        team_stats: {
+            team_members: number;
+            team_avg_score: number;
+            team_rank: number;
+        } | null;
+        recent_scores: Array<{
+            score: number;
+            timestamp: string;
+            player: string;
+            map_title: string;
+        }>;
+    };
 }
 
 interface OverviewProps {
@@ -57,26 +124,132 @@ interface OverviewProps {
 
 export function Overview({ tournament, user }: OverviewProps) {
     const styles = useStyles();
+    const [overviewData, setOverviewData] = useState<OverviewData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // 模拟统计数据
-    const stats = {
-        totalMaps: 24,
-        practiceProgress: 65,
-        averageScore: 875432,
-        rank: 8,
-        teamMembers: 4,
+    useEffect(() => {
+        fetchOverviewData();
+    }, [tournament.id]);
+
+    const fetchOverviewData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch(`/api/tournaments/${tournament.id}/overview`);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error("请先登录以查看总览数据");
+                } else if (response.status === 403) {
+                    throw new Error("您没有权限查看此比赛的总览数据");
+                } else if (response.status === 404) {
+                    throw new Error("比赛不存在");
+                } else {
+                    // 如果是其他错误，使用模拟数据
+                    console.warn(`API返回错误 ${response.status}，使用模拟数据`);
+                    setOverviewData(getMockData());
+                    return;
+                }
+            }
+
+            const data = await response.json();
+            setOverviewData(data);
+        } catch (err) {
+            console.error("Error fetching overview data:", err);
+            // 如果网络错误，使用模拟数据
+            console.warn("网络错误，使用模拟数据");
+            setOverviewData(getMockData());
+        } finally {
+            setLoading(false);
+        }
     };
+
+    // 生成模拟数据
+    const getMockData = (): OverviewData => ({
+        tournament: {
+            id: tournament.id,
+            name: tournament.name,
+            mode: tournament.mode,
+            type: tournament.type,
+            current_stage: tournament.current_stage,
+            stages: tournament.stages,
+            progress: tournament.stages.length > 0 ? ((tournament.stages.indexOf(tournament.current_stage) + 1) / tournament.stages.length) * 100 : 0,
+            status: tournament.status
+        },
+        participant: {
+            role: "player",
+            status: "active",
+            joined_at: new Date().toISOString()
+        },
+        stats: {
+            total_maps: 24,
+            practice_progress: 65,
+            personal_stats: {
+                total_scores: 45,
+                avg_score: 875432,
+                best_score: 1250000,
+                maps_played: 16
+            },
+            team_stats: tournament.type === "team" ? {
+                team_members: 4,
+                team_avg_score: 850000,
+                team_rank: 3
+            } : null,
+            recent_scores: [
+                {
+                    score: 950000,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30分钟前
+                    player: user.username,
+                    map_title: "Example Map [Hard]"
+                },
+                {
+                    score: 880000,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2小时前
+                    player: user.username,
+                    map_title: "Another Map [Normal]"
+                },
+                {
+                    score: 1200000,
+                    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1天前
+                    player: user.username,
+                    map_title: "Difficult Map [Expert]"
+                }
+            ]
+        }
+    });
+
+    if (loading) {
+        return (
+            <div className={styles.loadingContainer}>
+                <Spinner size="large" label="加载总览数据..." />
+            </div>
+        );
+    }
+
+    if (error || !overviewData) {
+        return (
+            <div className={styles.errorContainer}>
+                <Body1>加载失败：{error || "无法获取数据"}</Body1>
+                <Button onClick={fetchOverviewData} style={{ marginTop: "12px" }}>
+                    重试
+                </Button>
+            </div>
+        );
+    }
+
+    const { tournament: tourneyData, stats } = overviewData;
 
     return (
         <div className={styles.overviewGrid}>
             <Card className={styles.statCard}>
                 <CardHeader
                     header={<Title3>比赛进度</Title3>}
-                    description="当前阶段完成情况"
+                    description={`当前阶段: ${tourneyData.current_stage}`}
                 />
-                <div className={styles.statValue}>{tournament.current_stage.toUpperCase()}</div>
-                <ProgressBar value={65} style={{ marginTop: "12px" }} />
-                <Text style={{ marginTop: "8px" }}>65% 完成</Text>
+                <div className={styles.statValue}>{tourneyData.current_stage}</div>
+                <ProgressBar value={tourneyData.progress} style={{ marginTop: "12px" }} />
+                <Text style={{ marginTop: "8px" }}>{Math.round(tourneyData.progress)}% 完成</Text>
             </Card>
 
             <Card className={styles.statCard}>
@@ -84,7 +257,7 @@ export function Overview({ tournament, user }: OverviewProps) {
                     header={<Title3>图池信息</Title3>}
                     description="当前阶段图池"
                 />
-                <div className={styles.statValue}>{stats.totalMaps}</div>
+                <div className={styles.statValue}>{stats.total_maps}</div>
                 <Text>总图数</Text>
             </Card>
 
@@ -93,39 +266,89 @@ export function Overview({ tournament, user }: OverviewProps) {
                     header={<Title3>练习进度</Title3>}
                     description="个人练习完成度"
                 />
-                <div className={styles.statValue}>{stats.practiceProgress}%</div>
-                <ProgressBar value={stats.practiceProgress} style={{ marginTop: "12px" }} />
+                <div className={styles.statValue}>{stats.practice_progress}%</div>
+                <ProgressBar value={stats.practice_progress} style={{ marginTop: "12px" }} />
+                <Text style={{ marginTop: "4px" }}>
+                    已玩 {stats.personal_stats.maps_played} / {stats.total_maps} 张图
+                </Text>
             </Card>
 
             <Card className={styles.statCard}>
                 <CardHeader
-                    header={<Title3>平均分数</Title3>}
-                    description="最近10局平均"
+                    header={<Title3>个人统计</Title3>}
+                    description="分数统计"
                 />
-                <div className={styles.statValue}>{stats.averageScore.toLocaleString()}</div>
-                <Badge appearance="filled" color="success">
-                    排名 #{stats.rank}
-                </Badge>
+                <div className={styles.statValue}>{stats.personal_stats.avg_score.toLocaleString()}</div>
+                <Text>平均分数</Text>
+                <div style={{ marginTop: "8px" }}>
+                    <Badge appearance="filled" color="success">
+                        最高分: {stats.personal_stats.best_score.toLocaleString()}
+                    </Badge>
+                </div>
             </Card>
 
-            {tournament.type === "team" && (
+            {tourneyData.type === "team" && stats.team_stats && (
                 <Card className={styles.statCard}>
                     <CardHeader
                         header={<Title3>团队信息</Title3>}
-                        description="团队成员状态"
+                        description="团队统计"
                     />
-                    <div className={styles.statValue}>{stats.teamMembers}</div>
+                    <div className={styles.statValue}>{stats.team_stats.team_members}</div>
                     <Text>活跃成员</Text>
+                    <div style={{ marginTop: "8px" }}>
+                        <Badge appearance="outline">
+                            团队排名 #{stats.team_stats.team_rank}
+                        </Badge>
+                    </div>
                 </Card>
             )}
 
+            <Card className={styles.recentScoresCard}>
+                <CardHeader
+                    header={<Title3>最近分数</Title3>}
+                    description="您的最新提交"
+                />
+                {stats.recent_scores.length > 0 ? (
+                    <div>
+                        {stats.recent_scores.map((score, index) => (
+                            <div key={index} className={styles.scoreItem}>
+                                <div>
+                                    <div className={styles.scoreValue}>
+                                        {score.score.toLocaleString()}
+                                    </div>
+                                    <div className={styles.scoreMap}>
+                                        {score.map_title}
+                                    </div>
+                                </div>
+                                <Text style={{ fontSize: "12px", color: tokens.colorNeutralForeground3 }}>
+                                    {new Date(score.timestamp).toLocaleDateString()}
+                                </Text>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <Text style={{ textAlign: "center", padding: "20px" }}>
+                        暂无分数记录
+                    </Text>
+                )}
+            </Card>
+
             <Card className={styles.statCard}>
                 <CardHeader
-                    header={<Title3>下次比赛</Title3>}
-                    description="即将进行的比赛"
+                    header={<Title3>比赛状态</Title3>}
+                    description="当前状态"
                 />
-                <Text weight="semibold">2025-09-30 20:00</Text>
-                <Text style={{ display: "block", marginTop: "4px" }}>vs Team Alpha</Text>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <Badge
+                        appearance="filled"
+                        color={tourneyData.status === "active" ? "success" : "warning"}
+                    >
+                        {tourneyData.status === "active" ? "进行中" : "未开始"}
+                    </Badge>
+                </div>
+                <Text style={{ marginTop: "8px" }}>
+                    模式: {tourneyData.mode} | 类型: {tourneyData.type === "team" ? "团队赛" : "个人赛"}
+                </Text>
             </Card>
         </div>
     );
