@@ -109,33 +109,75 @@ export async function POST(
   }
 
   const userAgent = request.headers.get("user-agent") ?? "Mozilla/5.0";
-  const sayobotUrl = `https://dl.sayobot.cn/beatmaps/download/full/${targetId}`;
 
-  let upstreamResponse: Response;
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+  // Multiple download sources with fallback
+  const downloadSources = [
+    {
+      name: "nerinyan",
+      url: `https://api.nerinyan.moe/d/${targetId}`,
+      headers: {
+        "User-Agent": userAgent,
+        Accept: "*/*",
+      } as Record<string, string>,
+    },
+    {
+      name: "chimu",
+      url: `https://catboy.best/d/${targetId}`,
+      headers: {
+        "User-Agent": userAgent,
+        Accept: "application/x-osu-beatmap-archive",
+      } as Record<string, string>,
+    },
+    {
+      name: "sayobot",
+      url: `https://dl.sayobot.cn/beatmaps/download/full/${targetId}`,
+      headers: {
+        Referer: "https://sheet.rino.ink/",
+        "User-Agent": userAgent,
+        Accept: "*/*",
+      } as Record<string, string>,
+    },
+  ];
 
+  let lastError: string = "";
+  let upstreamResponse: Response | null = null;
+
+  // Try each download source
+  for (const source of downloadSources) {
     try {
-      upstreamResponse = await fetch(sayobotUrl, {
-        headers: {
-          Referer: "https://sheet.rino.ink/",
-          "User-Agent": userAgent,
-          Accept: "*/*",
-        },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeoutId);
+      console.log(`尝试从 ${source.name} 下载: ${source.url}`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+      try {
+        const response = await fetch(source.url, {
+          headers: source.headers,
+          signal: controller.signal,
+        });
+
+        if (response.ok && response.body) {
+          upstreamResponse = response;
+          console.log(`成功从 ${source.name} 获取下载`);
+          break;
+        } else {
+          lastError = `${source.name}: ${response.status} ${response.statusText}`;
+          console.warn(`从 ${source.name} 下载失败:`, lastError);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    } catch (error) {
+      lastError = `${source.name}: ${error instanceof Error ? error.message : '未知错误'}`;
+      console.warn(`从 ${source.name} 下载出错:`, error);
     }
-  } catch (error) {
-    console.error("请求 sayobot 下载接口失败:", error);
-    return NextResponse.json({ error: "获取图谱下载失败" }, { status: 502 });
   }
 
-  if (!upstreamResponse.ok || !upstreamResponse.body) {
-    console.error("sayobot 下载接口返回异常:", upstreamResponse.status, upstreamResponse.statusText);
-    return NextResponse.json({ error: "下载失败，请稍后再试" }, { status: 502 });
+  if (!upstreamResponse || !upstreamResponse.body) {
+    console.error("所有下载源都失败了，最后的错误:", lastError);
+    return NextResponse.json({
+      error: "获取图谱下载失败，所有下载源都不可用",
+      details: lastError
+    }, { status: 502 });
   }
 
   const upstreamDisposition = upstreamResponse.headers.get("content-disposition");
