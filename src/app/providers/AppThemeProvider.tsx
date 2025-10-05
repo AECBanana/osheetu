@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useMemo, type ReactNode, useEffect } from "react";
-import { webLightTheme, webDarkTheme, type Theme, createLightTheme, createDarkTheme, tokens } from "@fluentui/react-components";
+import { webLightTheme, webDarkTheme, type Theme, createLightTheme, createDarkTheme, tokens, type BrandVariants } from "@fluentui/react-components";
 
 export type ColorScheme = "blue" | "green" | "purple" | "orange" | "pink";
 
@@ -47,16 +47,26 @@ const colorSchemes = {
 const createCustomTheme = (baseTheme: Theme, colorScheme: ColorScheme): Theme => {
   const colors = colorSchemes[colorScheme];
 
-  // 创建自定义主题，通过修改品牌颜色
+  // 复制基础主题
   const customTheme = { ...baseTheme };
 
-  // 修改品牌颜色
-  (customTheme as any).colorBrandForeground1 = colors.primary;
-  (customTheme as any).colorBrandForeground2 = colors.light;
-  (customTheme as any).colorBrandForeground3 = colors.dark;
-  (customTheme as any).colorBrandBackground1 = colors.primary;
-  (customTheme as any).colorBrandBackground2 = colors.light;
-  (customTheme as any).colorBrandBackground3 = colors.dark;
+  // 修改主要的品牌颜色 - 这些是按钮、链接等组件使用的主要颜色
+  customTheme.colorBrandBackground = colors.primary;
+  customTheme.colorBrandBackgroundHover = colors.light;
+  customTheme.colorBrandBackgroundPressed = colors.dark;
+  customTheme.colorBrandForeground1 = colors.primary;
+  customTheme.colorBrandForeground2 = colors.primary;
+  customTheme.colorBrandForegroundLink = colors.primary;
+  customTheme.colorBrandForegroundLinkHover = colors.light;
+  customTheme.colorBrandForegroundLinkPressed = colors.dark;
+
+  // 修改品牌边框颜色
+  customTheme.colorBrandStroke1 = colors.primary;
+  customTheme.colorBrandStroke2 = colors.light;
+
+  // 修改复合品牌颜色（用于特殊组件）
+  customTheme.colorCompoundBrandBackground = colors.primary;
+  customTheme.colorCompoundBrandForeground1 = colors.primary;
 
   return customTheme;
 };
@@ -90,7 +100,7 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const fluentTheme = useMemo(() => {
     const baseTheme = theme === "light" ? webLightTheme : webDarkTheme;
-    return colorScheme === "blue" ? baseTheme : createCustomTheme(baseTheme, colorScheme);
+    return createCustomTheme(baseTheme, colorScheme);
   }, [theme, colorScheme]);
 
   const value = useMemo(() => ({
