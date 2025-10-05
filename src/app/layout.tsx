@@ -10,8 +10,8 @@ initializeApp().catch((error) => {
 });
 
 export const metadata: Metadata = {
-  title: "OSU! 比赛管理系统",
-  description: "专业的OSU比赛组织和管理平台，支持图池管理、分数统计、BP记录等功能",
+  title: "OSheetU 比赛练图表",
+  description: "一个基于 Next.js 和 Fluent UI 的练图表",
 };
 
 export default function RootLayout({

@@ -355,7 +355,6 @@ export default function Home() {
           className={styles.drawer}
         >
           <NavDrawerHeader>
-            {/* The Hamburger button was here, now removed. */}
             <div className={styles.drawerHeaderArea}>
               {user ? (
                 <div className={styles.userSummary}>
@@ -366,7 +365,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <Body1 className={styles.navPlaceholder}>登录后可访问功能导航</Body1>
+                <Body1 className={styles.navPlaceholder}>未登录</Body1>
               )}
             </div>
           </NavDrawerHeader>
@@ -406,7 +405,7 @@ export default function Home() {
                   )}
                 </div>
               ) : (
-                <Body1 className={styles.navPlaceholder}>登录后可浏览功能菜单</Body1>
+                <Body1 className={styles.navPlaceholder}></Body1>
               )}
             </div>
 

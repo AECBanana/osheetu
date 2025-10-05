@@ -119,20 +119,46 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
             setFeedback({ intent: "error", text: "请选择图谱并填写分数" });
             return;
         }
+
+        // 解析分数，支持"w"单位
+        let parsedScore = score.trim().toLowerCase();
+        let scoreValue: number;
+
+        if (parsedScore.endsWith('w')) {
+            // 移除'w'并转换为数字，然后乘以10000
+            const numPart = parsedScore.slice(0, -1);
+            const num = parseFloat(numPart);
+            if (isNaN(num)) {
+                setFeedback({ intent: "error", text: "分数格式无效，请输入数字或带'w'的数字（如12w）" });
+                return;
+            }
+            scoreValue = num * 10000;
+        } else {
+            scoreValue = parseFloat(parsedScore);
+            if (isNaN(scoreValue)) {
+                setFeedback({ intent: "error", text: "分数格式无效，请输入数字或带'w'的数字（如12w）" });
+                return;
+            }
+        }
+
+        if (scoreValue <= 0) {
+            setFeedback({ intent: "error", text: "分数必须大于0" });
+            return;
+        }
+
         setSubmitting(true);
         setFeedback(null);
         try {
             const response = await fetch(`/api/tournaments/${tournament.id}/scores`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mapId: selectedMap, score }),
+                body: JSON.stringify({ mapId: selectedMap, score: scoreValue }),
             });
             const data = await response.json();
             if (!response.ok) {
                 throw new Error(data.error || "提交分数失败");
             }
             setFeedback({ intent: "success", text: "分数提交成功！" });
-            setSelectedMap(undefined);
             setScore("");
             await loadData(); // Refresh scores
         } catch (err) {
@@ -206,13 +232,13 @@ export function ScoreSubmission({ tournament, user }: ScoreSubmissionProps) {
 
                     <Field label="分数" required>
                         <Input
-                            type="number"
+                            type="text"
                             value={score}
                             onChange={(e) => {
                                 setScore(e.target.value);
                                 setFeedback(null);
                             }}
-                            placeholder="输入分数"
+                            placeholder="输入分数 (支持数字加w格式，如12w为12万分数)"
                             disabled={submitting}
                         />
                     </Field>

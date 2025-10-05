@@ -43,47 +43,47 @@ export const ensureMapPoolColumns = async () => {
     name: string;
     alter: string;
   }> = [
-    {
-      name: "beatmapset_id",
-      alter: "ALTER TABLE map_pools ADD COLUMN beatmapset_id BIGINT UNSIGNED",
-    },
-    {
-      name: "cover_url",
-      alter: "ALTER TABLE map_pools ADD COLUMN cover_url VARCHAR(512)",
-    },
-    {
-      name: "ar",
-      alter: "ALTER TABLE map_pools ADD COLUMN ar DECIMAL(4,2) DEFAULT NULL",
-    },
-    {
-      name: "cs",
-      alter: "ALTER TABLE map_pools ADD COLUMN cs DECIMAL(4,2) DEFAULT NULL",
-    },
-    {
-      name: "od",
-      alter: "ALTER TABLE map_pools ADD COLUMN od DECIMAL(4,2) DEFAULT NULL",
-    },
-    {
-      name: "hp",
-      alter: "ALTER TABLE map_pools ADD COLUMN hp DECIMAL(4,2) DEFAULT NULL",
-    },
-    {
-      name: "beatmap_id",
-      alter: "ALTER TABLE map_pools MODIFY COLUMN beatmap_id BIGINT UNSIGNED NOT NULL",
-    },
-    {
-      name: "length",
-      alter: "ALTER TABLE map_pools MODIFY COLUMN length VARCHAR(16) NOT NULL",
-    },
-    {
-      name: "mod_value",
-      alter: "ALTER TABLE map_pools MODIFY COLUMN mod_value VARCHAR(20) NOT NULL",
-    },
-    {
-      name: "stars",
-      alter: "ALTER TABLE map_pools MODIFY COLUMN stars DECIMAL(4,2) NOT NULL",
-    },
-  ];
+      {
+        name: "beatmapset_id",
+        alter: "ALTER TABLE map_pools ADD COLUMN beatmapset_id BIGINT UNSIGNED",
+      },
+      {
+        name: "cover_url",
+        alter: "ALTER TABLE map_pools ADD COLUMN cover_url VARCHAR(512)",
+      },
+      {
+        name: "ar",
+        alter: "ALTER TABLE map_pools ADD COLUMN ar DECIMAL(4,2) DEFAULT NULL",
+      },
+      {
+        name: "cs",
+        alter: "ALTER TABLE map_pools ADD COLUMN cs DECIMAL(4,2) DEFAULT NULL",
+      },
+      {
+        name: "od",
+        alter: "ALTER TABLE map_pools ADD COLUMN od DECIMAL(4,2) DEFAULT NULL",
+      },
+      {
+        name: "hp",
+        alter: "ALTER TABLE map_pools ADD COLUMN hp DECIMAL(4,2) DEFAULT NULL",
+      },
+      {
+        name: "beatmap_id",
+        alter: "ALTER TABLE map_pools MODIFY COLUMN beatmap_id BIGINT UNSIGNED NOT NULL",
+      },
+      {
+        name: "length",
+        alter: "ALTER TABLE map_pools MODIFY COLUMN length VARCHAR(16) NOT NULL",
+      },
+      {
+        name: "mod_value",
+        alter: "ALTER TABLE map_pools MODIFY COLUMN mod_value VARCHAR(20) NOT NULL",
+      },
+      {
+        name: "stars",
+        alter: "ALTER TABLE map_pools MODIFY COLUMN stars DECIMAL(4,2) NOT NULL",
+      },
+    ];
 
   for (const column of columnsToCheck) {
     try {
@@ -222,18 +222,7 @@ export const initDatabase = async () => {
       console.warn('调整用户令牌字段长度失败（可能已是最新结构）:', error);
     }
 
-    try {
-      await query(`
-        ALTER TABLE tournaments
-          ADD COLUMN include_qualifier BOOLEAN DEFAULT FALSE,
-          ADD COLUMN allow_custom_mods BOOLEAN DEFAULT FALSE,
-          ADD COLUMN settings JSON NULL
-      `);
-    } catch (error) {
-      console.warn('扩展比赛配置字段失败（可能已存在）:', error);
-    }
-
-    await ensureMapPoolColumns();
+    await ensureTournamentExtendedColumns();
 
     console.log('数据库表创建成功');
   } catch (error) {
@@ -249,19 +238,19 @@ export const ensureTournamentExtendedColumns = async () => {
     name: string;
     alter: string;
   }> = [
-    {
-      name: "include_qualifier",
-      alter: "ALTER TABLE tournaments ADD COLUMN include_qualifier BOOLEAN DEFAULT FALSE",
-    },
-    {
-      name: "allow_custom_mods",
-      alter: "ALTER TABLE tournaments ADD COLUMN allow_custom_mods BOOLEAN DEFAULT FALSE",
-    },
-    {
-      name: "settings",
-      alter: "ALTER TABLE tournaments ADD COLUMN settings JSON NULL",
-    },
-  ];
+      {
+        name: "include_qualifier",
+        alter: "ALTER TABLE tournaments ADD COLUMN include_qualifier BOOLEAN DEFAULT FALSE",
+      },
+      {
+        name: "allow_custom_mods",
+        alter: "ALTER TABLE tournaments ADD COLUMN allow_custom_mods BOOLEAN DEFAULT FALSE",
+      },
+      {
+        name: "settings",
+        alter: "ALTER TABLE tournaments ADD COLUMN settings JSON NULL",
+      },
+    ];
 
   for (const column of columnsToCheck) {
     try {

@@ -67,7 +67,7 @@ export function Dashboard({
     onSelectTournament,
 }: DashboardProps) {
     const styles = useStyles();
-    
+
     // 使用自定义会话钩子获取用户信息
     const { user: sessionUser, loading, error, refreshSession } = useUserSession();
     const user = sessionUser || propUser; // 优先使用session中的用户信息
@@ -233,13 +233,14 @@ export function Dashboard({
                     {/* 比赛信息 */}
                     <div>
                         <Title2>{selectedTournament.name}</Title2>
-                        <Text as="p" style={{ marginTop: '4px', color: 'var(--colorNeutralForeground2)' }}>
-                            {`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'} | 当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}
-                        </Text>
+                        <div style={{ marginTop: '4px', color: 'var(--colorNeutralForeground2)' }}>
+                            <Text as="p">{`模式: ${selectedTournament.mode.toUpperCase()} | 类型: ${selectedTournament.type === 'team' ? '团队赛' : '个人赛'}`}</Text>
+                            <Text as="p">{`当前阶段: ${selectedTournament.current_stage.toUpperCase()}`}</Text>
+                        </div>
                     </div>
 
                     {/* 标签页内容 */}
-                    <div>
+                    <div style={{ paddingLeft: "1px" }}>
                         {selectedTab === "overview" && <Overview tournament={selectedTournament} user={user} />}
                         {selectedTab === "mappool" && <MapPool tournament={selectedTournament} user={user} />}
                         {selectedTab === "scores" && <ScoreSubmission tournament={selectedTournament} user={user} />}
