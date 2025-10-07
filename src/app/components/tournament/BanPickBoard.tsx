@@ -42,48 +42,34 @@ const useStyles = makeStyles({
         alignItems: "start", // 防止高度变化导致的跳动
     },
     mapCard: {
-        padding: "8px",
-        border: `1px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "6px",
         cursor: "pointer",
         transition: "all 0.2s ease",
-        backgroundColor: tokens.colorNeutralBackground1,
         position: "relative",
-        minHeight: "120px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
         overflow: "hidden",
         boxSizing: "border-box",
+        border: "2px solid transparent",
     },
     mapCardHover: {
-        border: `1px solid #0078d4`,
-        backgroundColor: "#f3f2f1",
+        border: `2px solid #0078d4`,
         boxSizing: "border-box",
     },
     mapCardSelected: {
-        border: `1px solid #0078d4`,
-        backgroundColor: "#f3f2f1",
+        border: `2px solid #0078d4`,
         boxSizing: "border-box",
     },
     mapCardBanned: {
-        border: `1px solid #d13438`,
-        backgroundColor: "#fef0f1",
-        opacity: 0.7,
+        border: `2px solid #d13438`,
         boxSizing: "border-box",
     },
     mapCardPicked: {
-        border: `1px solid #107c10`,
-        backgroundColor: "#f1f8f1",
+        border: `2px solid #107c10`,
         boxSizing: "border-box",
     },
     mapCover: {
         width: "100%",
-        height: "60px",
+        height: "120px",
         objectFit: "cover",
-        borderRadius: "4px",
-        marginBottom: "4px",
+        display: "block",
     },
     mapMod: {
         position: "absolute",
@@ -94,14 +80,21 @@ const useStyles = makeStyles({
         borderRadius: "3px",
         fontSize: "10px",
         fontWeight: "bold",
+        zIndex: 2,
     },
     mapTitle: {
-        fontWeight: "semibold",
-        fontSize: "11px",
-        textAlign: "center",
-        lineHeight: "1.2",
-        wordBreak: "break-word",
-        padding: "0 4px",
+        position: "absolute",
+        top: "4px",
+        left: "40px",
+        color: "white",
+        fontSize: "12px",
+        fontWeight: "bold",
+        textShadow: "1px 1px 2px rgba(0,0,0,0.8)",
+        zIndex: 2,
+        maxWidth: "calc(100% - 50px)",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
     },
     controlPanel: {
         padding: "16px",
@@ -292,7 +285,6 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
     };
 
     const getModColor = (mod: string) => {
-        console.log('Mod value:', mod, 'Upper case:', mod.toUpperCase());
         const modColors: Record<string, string> = {
             'NM': '#808080', // 灰色
             'HD': '#FFD700', // 黄色
@@ -301,9 +293,7 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
             'FM': '#008000', // 绿色
             'TB': '#000000', // 黑色
         };
-        const color = modColors[mod.toUpperCase()] || '#808080';
-        console.log('Selected color:', color);
-        return color;
+        return modColors[mod.toUpperCase()] || '#808080'; // 默认灰色
     };
 
     const renderModSection = (mod: string, maps: MapPoolItem[]) => {
@@ -333,12 +323,6 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
                                             </Badge>
                                         </div>
                                     )}
-                                    <div
-                                        className={styles.mapMod}
-                                        style={{ backgroundColor: getModColor(map.mod_value) }}
-                                    >
-                                        {map.mod_value}
-                                    </div>
                                     {map.cover_url && (
                                         <img
                                             src={map.cover_url}
@@ -346,6 +330,19 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
                                             className={styles.mapCover}
                                         />
                                     )}
+                                    <div
+                                        className={styles.mapMod}
+                                        style={{
+                                            backgroundColor: getModColor(map.mod_value),
+                                            color: 'white',
+                                            padding: '2px 6px',
+                                            borderRadius: '3px',
+                                            fontSize: '10px',
+                                            fontWeight: 'bold'
+                                        }}
+                                    >
+                                        {map.mod_value}
+                                    </div>
                                     <div className={styles.mapTitle}>
                                         {map.title}
                                     </div>
