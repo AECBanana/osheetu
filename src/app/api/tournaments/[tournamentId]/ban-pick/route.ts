@@ -12,6 +12,7 @@ interface MapPoolRow extends RowDataPacket {
     difficulty: string;
     mod_value: string;
     stars: string | number;
+    cover_url: string;
 }
 
 interface BPRecordRow extends RowDataPacket {
@@ -42,7 +43,7 @@ export async function GET(
 
         // 获取当前阶段的图池，按mod分组
         const mapPoolRows = (await query(`
-      SELECT id, title, artist, difficulty, mod_value, stars
+      SELECT id, title, artist, difficulty, mod_value, stars, cover_url
       FROM map_pools
       WHERE tournament_id = ? AND (stage = ? OR stage = '')
       ORDER BY mod_value, id

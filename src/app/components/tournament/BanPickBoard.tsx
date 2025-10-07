@@ -37,47 +37,66 @@ const useStyles = makeStyles({
     },
     mapsGrid: {
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-        gap: "12px",
+        gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+        gap: "8px",
     },
     mapCard: {
-        padding: "12px",
-        border: `2px solid ${tokens.colorNeutralStroke2}`,
-        borderRadius: "8px",
+        padding: "8px",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "6px",
         cursor: "pointer",
         transition: "all 0.2s ease",
         backgroundColor: tokens.colorNeutralBackground1,
+        position: "relative",
+        minHeight: "120px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
     },
     mapCardHover: {
-        border: "2px solid #0078d4",
+        border: "1px solid #0078d4",
         backgroundColor: "#f3f2f1",
     },
     mapCardSelected: {
-        border: "2px solid #0078d4",
+        border: "1px solid #0078d4",
         backgroundColor: "#f3f2f1",
     },
     mapCardBanned: {
-        border: "2px solid #d13438",
+        border: "1px solid #d13438",
         backgroundColor: "#fef0f1",
-        opacity: 0.6,
+        opacity: 0.7,
     },
     mapCardPicked: {
-        border: "2px solid #107c10",
+        border: "1px solid #107c10",
         backgroundColor: "#f1f8f1",
+    },
+    mapCover: {
+        width: "100%",
+        height: "60px",
+        objectFit: "cover",
+        borderRadius: "4px",
+        marginBottom: "4px",
+    },
+    mapMod: {
+        position: "absolute",
+        top: "4px",
+        left: "4px",
+        backgroundColor: "rgba(0, 0, 0, 0.7)",
+        color: "white",
+        padding: "2px 6px",
+        borderRadius: "3px",
+        fontSize: "10px",
+        fontWeight: "bold",
     },
     mapTitle: {
         fontWeight: "semibold",
-        marginBottom: "4px",
-        fontSize: "14px",
-    },
-    mapInfo: {
-        fontSize: "12px",
-        color: tokens.colorNeutralForeground3,
-        marginBottom: "4px",
-    },
-    mapStars: {
-        fontSize: "12px",
-        color: tokens.colorNeutralForeground2,
+        fontSize: "11px",
+        textAlign: "center",
+        lineHeight: "1.2",
+        wordBreak: "break-word",
+        padding: "0 4px",
     },
     controlPanel: {
         padding: "16px",
@@ -96,11 +115,13 @@ const useStyles = makeStyles({
     },
     statusBadge: {
         position: "absolute",
-        top: "8px",
-        right: "8px",
+        top: "4px",
+        right: "4px",
+        fontSize: "10px",
     },
     mapCardContent: {
         position: "relative",
+        width: "100%",
     },
 });
 
@@ -122,6 +143,7 @@ interface MapPoolItem {
     difficulty: string;
     mod_value: string;
     stars: number;
+    cover_url: string;
 }
 
 interface BPRecord {
@@ -266,57 +288,51 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
     };
 
     const renderModSection = (mod: string, maps: MapPoolItem[]) => {
-        // 计算行数，每行最多2个
-        const rows = [];
-        for (let i = 0; i < maps.length; i += 2) {
-            rows.push(maps.slice(i, i + 2));
-        }
-
         return (
             <div key={mod} className={styles.modSection}>
                 <div className={styles.modHeader}>
                     {mod.toUpperCase()} ({maps.length} 张图)
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {rows.map((row, rowIndex) => (
-                        <div key={rowIndex} className={styles.mapsGrid}>
-                            {row.map((map) => {
-                                const status = getMapStatus(map);
-                                return (
-                                    <div
-                                        key={map.id}
-                                        className={getMapCardClass(map)}
-                                        onClick={() => status ? handleClearMap(map.id) : handleMapClick(map)}
-                                        onMouseEnter={() => setHoveredMap(map.id)}
-                                        onMouseLeave={() => setHoveredMap(null)}
-                                    >
-                                        <div className={styles.mapCardContent}>
-                                            {status && (
-                                                <div className={styles.statusBadge}>
-                                                    <Badge
-                                                        appearance="filled"
-                                                        color={status.action === 'ban' ? 'danger' : 'success'}
-                                                        size="small"
-                                                    >
-                                                        {status.teamColor === 'red' ? '红' : '蓝'} {status.action === 'ban' ? '禁' : '选'}
-                                                    </Badge>
-                                                </div>
-                                            )}
-                                            <div className={styles.mapTitle}>
-                                                {map.title}
-                                            </div>
-                                            <div className={styles.mapInfo}>
-                                                {map.artist} - {map.difficulty}
-                                            </div>
-                                            <div className={styles.mapStars}>
-                                                ⭐ {map.stars?.toFixed(2) || 'N/A'}
-                                            </div>
+                <div className={styles.mapsGrid}>
+                    {maps.map((map) => {
+                        const status = getMapStatus(map);
+                        return (
+                            <div
+                                key={map.id}
+                                className={getMapCardClass(map)}
+                                onClick={() => status ? handleClearMap(map.id) : handleMapClick(map)}
+                                onMouseEnter={() => setHoveredMap(map.id)}
+                                onMouseLeave={() => setHoveredMap(null)}
+                            >
+                                <div className={styles.mapCardContent}>
+                                    {status && (
+                                        <div className={styles.statusBadge}>
+                                            <Badge
+                                                appearance="filled"
+                                                color={status.teamColor === 'red' ? 'danger' : 'brand'}
+                                                size="small"
+                                            >
+                                                {status.teamColor === 'red' ? '🔴' : '🔵'}
+                                            </Badge>
                                         </div>
+                                    )}
+                                    <div className={styles.mapMod}>
+                                        {map.mod_value}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ))}
+                                    {map.cover_url && (
+                                        <img
+                                            src={map.cover_url}
+                                            alt={map.title}
+                                            className={styles.mapCover}
+                                        />
+                                    )}
+                                    <div className={styles.mapTitle}>
+                                        {map.title}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         );
