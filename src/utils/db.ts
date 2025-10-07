@@ -219,6 +219,23 @@ export const initDatabase = async () => {
       )
     `);
 
+    // 创建分数表
+    await query(`
+      CREATE TABLE IF NOT EXISTS scores (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        map_pool_id INT NOT NULL,
+        score BIGINT NOT NULL,
+        accuracy DECIMAL(5,2) DEFAULT 100.00,
+        combo INT DEFAULT 0,
+        mod_used VARCHAR(20),
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (map_pool_id) REFERENCES map_pools(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_score (user_id, map_pool_id)
+      )
+    `);
+
     try {
       await query(`
         ALTER TABLE users

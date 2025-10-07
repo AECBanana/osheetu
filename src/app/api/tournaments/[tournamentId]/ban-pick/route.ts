@@ -11,7 +11,7 @@ interface MapPoolRow extends RowDataPacket {
     artist: string;
     difficulty: string;
     mod_value: string;
-    stars: number;
+    stars: string | number;
 }
 
 interface BPRecordRow extends RowDataPacket {
@@ -56,12 +56,16 @@ export async function GET(
     `, [tournamentId, stage])) as BPRecordRow[];
 
         // 按mod分组图池
-        const mapsByMod: Record<string, MapPoolRow[]> = {};
+        const mapsByMod: Record<string, any[]> = {};
         mapPoolRows.forEach(map => {
             if (!mapsByMod[map.mod_value]) {
                 mapsByMod[map.mod_value] = [];
             }
-            mapsByMod[map.mod_value].push(map);
+            // 确保stars是数字类型
+            mapsByMod[map.mod_value].push({
+                ...map,
+                stars: typeof map.stars === 'string' ? parseFloat(map.stars) || 0 : map.stars
+            });
         });
 
         // 创建BP记录映射

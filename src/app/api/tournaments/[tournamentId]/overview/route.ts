@@ -116,7 +116,7 @@ export async function GET(
         const recentScoresRows = (await query(`
             SELECT
                 s.score,
-                s.accuracy,
+                COALESCE(s.accuracy, 100.00) as accuracy,
                 s.timestamp,
                 u.username as player,
                 mp.title as map_title,
@@ -210,7 +210,7 @@ export async function GET(
                 team_stats: teamStats,
                 recent_scores: recentScoresRows.map(row => ({
                     score: row.score,
-                    accuracy: row.accuracy,
+                    accuracy: parseFloat(row.accuracy) || 100.0,
                     timestamp: row.timestamp,
                     player: row.player,
                     map_title: row.map_title,
