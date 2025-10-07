@@ -201,19 +201,21 @@ export const initDatabase = async () => {
       )
     `);
 
-    // 创建分数记录表
+    // 创建BP记录表
     await query(`
-      CREATE TABLE IF NOT EXISTS scores (
+      CREATE TABLE IF NOT EXISTS ban_pick_records (
         id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT,
-        map_pool_id INT,
-        score INT NOT NULL,
-        accuracy DECIMAL(5,2) NOT NULL,
-        combo INT NOT NULL,
-        mod_used VARCHAR(20) NOT NULL,
-        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        FOREIGN KEY (map_pool_id) REFERENCES map_pools(id) ON DELETE CASCADE
+        tournament_id INT NOT NULL,
+        stage VARCHAR(50) NOT NULL,
+        map_pool_id INT NOT NULL,
+        team_color ENUM('red', 'blue') NOT NULL,
+        action ENUM('ban', 'pick') NOT NULL,
+        created_by INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_bp_record (tournament_id, stage, map_pool_id),
+        FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+        FOREIGN KEY (map_pool_id) REFERENCES map_pools(id) ON DELETE CASCADE,
+        FOREIGN KEY (created_by) REFERENCES users(id)
       )
     `);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Card,
     CardHeader,
@@ -8,29 +8,99 @@ import {
     Button,
     Text,
     Badge,
-    DataGrid,
-    DataGridHeader,
-    DataGridRow,
-    DataGridHeaderCell,
-    DataGridCell,
-    DataGridBody,
-    TableColumnDefinition,
-    createTableColumn,
     makeStyles,
+    tokens,
+    ToggleButton,
+    Tooltip,
 } from "@fluentui/react-components";
 
 const useStyles = makeStyles({
+    container: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+    },
+    mapPoolSection: {
+        display: "flex",
+        flexDirection: "column",
+        gap: "16px",
+    },
+    modSection: {
+        padding: "16px",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "8px",
+    },
+    modHeader: {
+        marginBottom: "12px",
+        fontWeight: "bold",
+        color: tokens.colorBrandForeground1,
+    },
+    mapsGrid: {
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        gap: "12px",
+    },
+    mapCard: {
+        padding: "12px",
+        border: `2px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "8px",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        backgroundColor: tokens.colorNeutralBackground1,
+    },
+    mapCardHover: {
+        border: "2px solid #0078d4",
+        backgroundColor: "#f3f2f1",
+    },
+    mapCardSelected: {
+        border: "2px solid #0078d4",
+        backgroundColor: "#f3f2f1",
+    },
+    mapCardBanned: {
+        border: "2px solid #d13438",
+        backgroundColor: "#fef0f1",
+        opacity: 0.6,
+    },
+    mapCardPicked: {
+        border: "2px solid #107c10",
+        backgroundColor: "#f1f8f1",
+    },
+    mapTitle: {
+        fontWeight: "semibold",
+        marginBottom: "4px",
+        fontSize: "14px",
+    },
+    mapInfo: {
+        fontSize: "12px",
+        color: tokens.colorNeutralForeground3,
+        marginBottom: "4px",
+    },
+    mapStars: {
+        fontSize: "12px",
+        color: tokens.colorNeutralForeground2,
+    },
+    controlPanel: {
+        padding: "16px",
+        border: `1px solid ${tokens.colorNeutralStroke2}`,
+        borderRadius: "8px",
+        backgroundColor: tokens.colorNeutralBackground2,
+    },
     actionButtons: {
         display: "flex",
         gap: "8px",
+        flexWrap: "wrap",
         marginBottom: "16px",
-        padding: "16px",
     },
-    phaseHeader: {
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        marginBottom: "12px",
+    actionButton: {
+        minWidth: "120px",
+    },
+    statusBadge: {
+        position: "absolute",
+        top: "8px",
+        right: "8px",
+    },
+    mapCardContent: {
+        position: "relative",
     },
 });
 
@@ -45,170 +115,306 @@ interface User {
     username: string;
 }
 
-interface BanPickRecord {
-    id: string;
-    phase: string;
-    team: string;
-    action: "ban" | "pick";
-    mapTitle: string;
-    mod: string;
-    timestamp: string;
+interface MapPoolItem {
+    id: number;
+    title: string;
+    artist: string;
+    difficulty: string;
+    mod_value: string;
+    stars: number;
 }
+
+interface BPRecord {
+    id: number;
+    map_pool_id: number;
+    team_color: 'red' | 'blue';
+    action: 'ban' | 'pick';
+    created_by: number;
+}
+
+interface BPData {
+    mapsByMod: Record<string, MapPoolItem[]>;
+    bpRecords: Record<number, BPRecord>;
+}
+
+type ActionType = 'red-ban' | 'red-pick' | 'blue-ban' | 'blue-pick' | null;
 
 interface BanPickBoardProps {
     tournament: Tournament;
     user: User;
 }
 
-const mockBanPickData: BanPickRecord[] = [
-    {
-        id: "1",
-        phase: "RO16",
-        team: "Team Alpha",
-        action: "ban",
-        mapTitle: "Sidetracked Day",
-        mod: "NM1",
-        timestamp: "2025-09-29 20:15",
-    },
-    {
-        id: "2",
-        phase: "RO16",
-        team: "Team Beta",
-        action: "ban",
-        mapTitle: "GHOST",
-        mod: "HD2",
-        timestamp: "2025-09-29 20:16",
-    },
-    {
-        id: "3",
-        phase: "RO16",
-        team: "Team Alpha",
-        action: "pick",
-        mapTitle: "Blue Zenith",
-        mod: "HR1",
-        timestamp: "2025-09-29 20:17",
-    },
-];
-
 export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
     const styles = useStyles();
-    const [records] = useState<BanPickRecord[]>(mockBanPickData);
-    const [currentPhase, setCurrentPhase] = useState(tournament.current_stage);
+    const [bpData, setBpData] = useState<BPData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedAction, setSelectedAction] = useState<ActionType>(null);
+    const [hoveredMap, setHoveredMap] = useState<number | null>(null);
 
-    const getActionColor = (action: "ban" | "pick") => {
-        return action === "ban" ? "danger" : "success";
+    useEffect(() => {
+        fetchBPData();
+    }, [tournament.id, tournament.current_stage]);
+
+    const fetchBPData = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch(`/api/tournaments/${tournament.id}/ban-pick?stage=${tournament.current_stage}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch BP data: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setBpData(data);
+        } catch (err) {
+            console.error("Error fetching BP data:", err);
+            setError(err instanceof Error ? err.message : "Failed to load BP data");
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const columns: TableColumnDefinition<BanPickRecord>[] = [
-        createTableColumn<BanPickRecord>({
-            columnId: "timestamp",
-            renderHeaderCell: () => "时间",
-            renderCell: (item) => item.timestamp.split(" ")[1],
-        }),
-        createTableColumn<BanPickRecord>({
-            columnId: "team",
-            renderHeaderCell: () => "队伍",
-            renderCell: (item) => item.team,
-        }),
-        createTableColumn<BanPickRecord>({
-            columnId: "action",
-            renderHeaderCell: () => "操作",
-            renderCell: (item) => (
-                <Badge appearance="filled" color={getActionColor(item.action)}>
-                    {item.action === "ban" ? "禁用" : "选择"}
-                </Badge>
-            ),
-        }),
-        createTableColumn<BanPickRecord>({
-            columnId: "map",
-            renderHeaderCell: () => "图谱",
-            renderCell: (item) => item.mapTitle,
-        }),
-        createTableColumn<BanPickRecord>({
-            columnId: "mod",
-            renderHeaderCell: () => "Mod",
-            renderCell: (item) => (
-                <Badge appearance="outline">
-                    {item.mod}
-                </Badge>
-            ),
-        }),
-    ];
+    const handleMapClick = async (map: MapPoolItem) => {
+        if (!selectedAction) {
+            return;
+        }
 
-    const getPhaseRecords = () => {
-        return records.filter(record => record.phase === currentPhase);
+        const [teamColor, action] = selectedAction.split('-') as ['red' | 'blue', 'ban' | 'pick'];
+
+        try {
+            const response = await fetch(`/api/tournaments/${tournament.id}/ban-pick`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    mapPoolId: map.id,
+                    teamColor,
+                    action,
+                    stage: tournament.current_stage,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save BP record: ${response.status}`);
+            }
+
+            // 重新获取数据
+            await fetchBPData();
+        } catch (err) {
+            console.error("Error saving BP record:", err);
+            setError(err instanceof Error ? err.message : "Failed to save BP record");
+        }
     };
+
+    const handleClearMap = async (mapId: number) => {
+        try {
+            const response = await fetch(
+                `/api/tournaments/${tournament.id}/ban-pick?mapPoolId=${mapId}&stage=${tournament.current_stage}`,
+                { method: 'DELETE' }
+            );
+
+            if (!response.ok) {
+                throw new Error(`Failed to clear BP record: ${response.status}`);
+            }
+
+            await fetchBPData();
+        } catch (err) {
+            console.error("Error clearing BP record:", err);
+            setError(err instanceof Error ? err.message : "Failed to clear BP record");
+        }
+    };
+
+    const getMapStatus = (map: MapPoolItem) => {
+        if (!bpData?.bpRecords[map.id]) {
+            return null;
+        }
+
+        const record = bpData.bpRecords[map.id];
+        return {
+            teamColor: record.team_color,
+            action: record.action,
+        };
+    };
+
+    const getMapCardClass = (map: MapPoolItem) => {
+        const status = getMapStatus(map);
+        let baseClass = styles.mapCard;
+
+        if (status) {
+            if (status.action === 'ban') {
+                baseClass = styles.mapCardBanned;
+            } else {
+                baseClass = styles.mapCardPicked;
+            }
+        } else if (selectedAction) {
+            baseClass = styles.mapCardSelected;
+        } else if (hoveredMap === map.id) {
+            baseClass = styles.mapCardHover;
+        }
+
+        return baseClass;
+    };
+
+    const getActionButtonColor = (action: ActionType) => {
+        if (selectedAction === action) {
+            return "primary";
+        }
+        return "secondary";
+    };
+
+    const renderModSection = (mod: string, maps: MapPoolItem[]) => {
+        // 计算行数，每行最多2个
+        const rows = [];
+        for (let i = 0; i < maps.length; i += 2) {
+            rows.push(maps.slice(i, i + 2));
+        }
+
+        return (
+            <div key={mod} className={styles.modSection}>
+                <div className={styles.modHeader}>
+                    {mod.toUpperCase()} ({maps.length} 张图)
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {rows.map((row, rowIndex) => (
+                        <div key={rowIndex} className={styles.mapsGrid}>
+                            {row.map((map) => {
+                                const status = getMapStatus(map);
+                                return (
+                                    <div
+                                        key={map.id}
+                                        className={getMapCardClass(map)}
+                                        onClick={() => status ? handleClearMap(map.id) : handleMapClick(map)}
+                                        onMouseEnter={() => setHoveredMap(map.id)}
+                                        onMouseLeave={() => setHoveredMap(null)}
+                                    >
+                                        <div className={styles.mapCardContent}>
+                                            {status && (
+                                                <div className={styles.statusBadge}>
+                                                    <Badge
+                                                        appearance="filled"
+                                                        color={status.action === 'ban' ? 'danger' : 'success'}
+                                                        size="small"
+                                                    >
+                                                        {status.teamColor === 'red' ? '红' : '蓝'} {status.action === 'ban' ? '禁' : '选'}
+                                                    </Badge>
+                                                </div>
+                                            )}
+                                            <div className={styles.mapTitle}>
+                                                {map.title}
+                                            </div>
+                                            <div className={styles.mapInfo}>
+                                                {map.artist} - {map.difficulty}
+                                            </div>
+                                            <div className={styles.mapStars}>
+                                                ⭐ {map.stars?.toFixed(2) || 'N/A'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    if (loading) {
+        return (
+            <div className={styles.container}>
+                <Card>
+                    <CardHeader header={<Title3>加载BP数据中...</Title3>} />
+                </Card>
+            </div>
+        );
+    }
+
+    if (error || !bpData) {
+        return (
+            <div className={styles.container}>
+                <Card>
+                    <CardHeader header={<Title3>BP记分板</Title3>} />
+                    <Text>加载失败：{error || "无法获取数据"}</Text>
+                    <Button onClick={fetchBPData} style={{ marginTop: "12px" }}>
+                        重试
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
 
     return (
-        <div>
-            <Card>
+        <div className={styles.container}>
+            {/* 操作面板 */}
+            <Card className={styles.controlPanel}>
                 <CardHeader
-                    header={<Title3>BP记分板</Title3>}
-                    description="比赛时的Ban Pick记录"
+                    header={<Title3>BP操作面板</Title3>}
+                    description="选择操作类型后点击图谱进行标记"
                 />
-
-                <div className={styles.phaseHeader} style={{ padding: "16px" }}>
-                    <Text weight="semibold">当前阶段:</Text>
-                    <Badge appearance="filled" color="brand">
-                        {currentPhase.toUpperCase()}
-                    </Badge>
-                    <Text size={200} style={{ marginLeft: "auto" }}>
-                        记录总数: {getPhaseRecords().length}
-                    </Text>
+                <div className={styles.actionButtons}>
+                    <ToggleButton
+                        appearance={getActionButtonColor('red-ban')}
+                        checked={selectedAction === 'red-ban'}
+                        onClick={() => setSelectedAction(selectedAction === 'red-ban' ? null : 'red-ban')}
+                        className={styles.actionButton}
+                    >
+                        🔴 红队禁用
+                    </ToggleButton>
+                    <ToggleButton
+                        appearance={getActionButtonColor('red-pick')}
+                        checked={selectedAction === 'red-pick'}
+                        onClick={() => setSelectedAction(selectedAction === 'red-pick' ? null : 'red-pick')}
+                        className={styles.actionButton}
+                    >
+                        🔴 红队选择
+                    </ToggleButton>
+                    <ToggleButton
+                        appearance={getActionButtonColor('blue-ban')}
+                        checked={selectedAction === 'blue-ban'}
+                        onClick={() => setSelectedAction(selectedAction === 'blue-ban' ? null : 'blue-ban')}
+                        className={styles.actionButton}
+                    >
+                        🔵 蓝队禁用
+                    </ToggleButton>
+                    <ToggleButton
+                        appearance={getActionButtonColor('blue-pick')}
+                        checked={selectedAction === 'blue-pick'}
+                        onClick={() => setSelectedAction(selectedAction === 'blue-pick' ? null : 'blue-pick')}
+                        className={styles.actionButton}
+                    >
+                        🔵 蓝队选择
+                    </ToggleButton>
                 </div>
-
-                <DataGrid
-                    items={getPhaseRecords()}
-                    columns={columns}
-                    getRowId={(item) => item.id}
-                >
-                    <DataGridHeader>
-                        <DataGridRow>
-                            {({ renderHeaderCell }) => (
-                                <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
-                            )}
-                        </DataGridRow>
-                    </DataGridHeader>
-                    <DataGridBody<BanPickRecord>>
-                        {({ item, rowId }) => (
-                            <DataGridRow<BanPickRecord> key={rowId}>
-                                {({ renderCell }) => (
-                                    <DataGridCell>{renderCell(item)}</DataGridCell>
-                                )}
-                            </DataGridRow>
-                        )}
-                    </DataGridBody>
-                </DataGrid>
+                {selectedAction && (
+                    <Text style={{ color: tokens.colorBrandForeground1 }}>
+                        当前选择：{selectedAction === 'red-ban' ? '🔴 红队禁用' :
+                            selectedAction === 'red-pick' ? '🔴 红队选择' :
+                                selectedAction === 'blue-ban' ? '🔵 蓝队禁用' :
+                                    '🔵 蓝队选择'}
+                        （点击图谱标记，点击已标记的图谱清除标记）
+                    </Text>
+                )}
             </Card>
 
-            {/* 统计信息 */}
-            <Card style={{ marginTop: "24px", padding: "16px" }}>
+            {/* 图池展示区 */}
+            <Card>
                 <CardHeader
-                    header={<Title3>BP统计</Title3>}
-                    description="当前阶段的Ban Pick统计信息"
+                    header={<Title3>图池展示</Title3>}
+                    description={`当前阶段: ${tournament.current_stage.toUpperCase()}`}
                 />
-
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "16px", marginTop: "16px" }}>
-                    <div style={{ textAlign: "center" }}>
-                        <Text weight="semibold" style={{ display: "block", fontSize: "24px" }}>
-                            {getPhaseRecords().filter(r => r.action === "ban").length}
+                <div className={styles.mapPoolSection}>
+                    {Object.keys(bpData.mapsByMod).length > 0 ? (
+                        Object.entries(bpData.mapsByMod)
+                            .sort(([a], [b]) => a.localeCompare(b))
+                            .map(([mod, maps]) => renderModSection(mod, maps))
+                    ) : (
+                        <Text style={{ textAlign: "center", padding: "40px" }}>
+                            当前阶段暂无图池数据
                         </Text>
-                        <Text size={200}>总禁用数</Text>
-                    </div>
-
-                    <div style={{ textAlign: "center" }}>
-                        <Text weight="semibold" style={{ display: "block", fontSize: "24px" }}>
-                            {getPhaseRecords().filter(r => r.action === "pick").length}
-                        </Text>
-                        <Text size={200}>总选择数</Text>
-                    </div>
-
-                    <div style={{ textAlign: "center" }}>
-                        <Text weight="semibold" style={{ display: "block", fontSize: "24px" }}>
-                            {new Set(getPhaseRecords().map(r => r.team)).size}
-                        </Text>
-                        <Text size={200}>参与队伍</Text>
-                    </div>
+                    )}
                 </div>
             </Card>
         </div>
