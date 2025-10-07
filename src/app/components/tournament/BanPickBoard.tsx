@@ -278,9 +278,8 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
             }
         } else if (selectedAction) {
             baseClass = styles.mapCardSelected;
-        } else if (hoveredMap === map.id) {
-            baseClass = styles.mapCardHover;
         }
+        // 移除hover状态的样式变化来防止跳动
 
         return baseClass;
     };
@@ -293,6 +292,7 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
     };
 
     const getModColor = (mod: string) => {
+        console.log('Mod value:', mod, 'Upper case:', mod.toUpperCase());
         const modColors: Record<string, string> = {
             'NM': '#808080', // 灰色
             'HD': '#FFD700', // 黄色
@@ -301,7 +301,9 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
             'FM': '#008000', // 绿色
             'TB': '#000000', // 黑色
         };
-        return modColors[mod.toUpperCase()] || '#808080'; // 默认灰色
+        const color = modColors[mod.toUpperCase()] || '#808080';
+        console.log('Selected color:', color);
+        return color;
     };
 
     const renderModSection = (mod: string, maps: MapPoolItem[]) => {
@@ -318,8 +320,6 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
                                 key={map.id}
                                 className={getMapCardClass(map)}
                                 onClick={() => status ? handleClearMap(map.id) : handleMapClick(map)}
-                                onMouseEnter={() => setHoveredMap(map.id)}
-                                onMouseLeave={() => setHoveredMap(null)}
                             >
                                 <div className={styles.mapCardContent}>
                                     {status && (
