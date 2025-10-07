@@ -54,23 +54,28 @@ const useStyles = makeStyles({
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+        boxSizing: "border-box",
     },
     mapCardHover: {
-        border: "1px solid #0078d4",
+        border: `1px solid #0078d4`,
         backgroundColor: "#f3f2f1",
+        boxSizing: "border-box",
     },
     mapCardSelected: {
-        border: "1px solid #0078d4",
+        border: `1px solid #0078d4`,
         backgroundColor: "#f3f2f1",
+        boxSizing: "border-box",
     },
     mapCardBanned: {
-        border: "1px solid #d13438",
+        border: `1px solid #d13438`,
         backgroundColor: "#fef0f1",
         opacity: 0.7,
+        boxSizing: "border-box",
     },
     mapCardPicked: {
-        border: "1px solid #107c10",
+        border: `1px solid #107c10`,
         backgroundColor: "#f1f8f1",
+        boxSizing: "border-box",
     },
     mapCover: {
         width: "100%",
@@ -287,6 +292,18 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
         return "secondary";
     };
 
+    const getModColor = (mod: string) => {
+        const modColors: Record<string, string> = {
+            'NM': '#808080', // 灰色
+            'HD': '#FFD700', // 黄色
+            'HR': '#FF0000', // 红色
+            'DT': '#800080', // 紫色
+            'FM': '#008000', // 绿色
+            'TB': '#000000', // 黑色
+        };
+        return modColors[mod.toUpperCase()] || '#808080'; // 默认灰色
+    };
+
     const renderModSection = (mod: string, maps: MapPoolItem[]) => {
         return (
             <div key={mod} className={styles.modSection}>
@@ -312,11 +329,14 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
                                                 color={status.teamColor === 'red' ? 'danger' : 'brand'}
                                                 size="small"
                                             >
-                                                {status.teamColor === 'red' ? '🔴' : '🔵'}
+                                                {status.teamColor === 'red' ? '红' : '蓝'}
                                             </Badge>
                                         </div>
                                     )}
-                                    <div className={styles.mapMod}>
+                                    <div
+                                        className={styles.mapMod}
+                                        style={{ backgroundColor: getModColor(map.mod_value) }}
+                                    >
                                         {map.mod_value}
                                     </div>
                                     {map.cover_url && (
