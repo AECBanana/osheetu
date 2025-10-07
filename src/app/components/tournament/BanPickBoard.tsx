@@ -39,6 +39,7 @@ const useStyles = makeStyles({
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
         gap: "8px",
+        alignItems: "start", // 防止高度变化导致的跳动
     },
     mapCard: {
         padding: "8px",
@@ -88,7 +89,6 @@ const useStyles = makeStyles({
         position: "absolute",
         top: "4px",
         left: "4px",
-        backgroundColor: "rgba(0, 0, 0, 0.7)",
         color: "white",
         padding: "2px 6px",
         borderRadius: "3px",
@@ -329,7 +329,7 @@ export function BanPickBoard({ tournament, user }: BanPickBoardProps) {
                                                 color={status.teamColor === 'red' ? 'danger' : 'brand'}
                                                 size="small"
                                             >
-                                                {status.teamColor === 'red' ? '红' : '蓝'}
+                                                {status.teamColor === 'red' ? '红' : '蓝'} {status.action === 'ban' ? '禁' : '选'}
                                             </Badge>
                                         </div>
                                     )}
